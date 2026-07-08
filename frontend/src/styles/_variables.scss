@@ -1,0 +1,17 @@
+$primary: #65d46e;
+$secondary: #44b9ff;
+$bg: #080d12;
+$surface: #111922;
+$text-primary: #eef7f0;
+$text-secondary: #8fa0ad;
+$border: rgba(255, 255, 255, 0.08);
+
+@mixin card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(101, 212, 110, 0.34);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(101, 212, 110, 0.08);
+  }
+}

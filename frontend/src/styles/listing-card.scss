@@ -1,0 +1,50 @@
+@import '../styles/variables';
+
+.listing-card {
+  @include card-hover;
+  overflow: hidden;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, rgba(21, 31, 42, 0.96), rgba(14, 21, 29, 0.96)) !important;
+
+  .MuiCardActionArea-root {
+    height: 100%;
+  }
+
+  .MuiCardContent-root {
+    padding: 12px;
+  }
+
+  .MuiChip-root {
+    height: 24px;
+    max-width: 100%;
+  }
+
+  .MuiChip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.listing-card__media {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(101, 212, 110, 0.08), rgba(68, 185, 255, 0.08)),
+    #0d141b;
+
+  img {
+    transition: transform 0.22s ease, filter 0.22s ease;
+  }
+
+  .listing-card:hover & img {
+    transform: scale(1.035);
+    filter: saturate(1.08);
+  }
+}
+
+.listing-card__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
