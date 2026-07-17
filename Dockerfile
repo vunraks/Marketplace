@@ -19,5 +19,6 @@ EXPOSE 8080
 COPY --from=build /app/publish .
 ENV ASPNETCORE_HTTP_PORTS=8080
 ENV DOTNET_EnableDiagnostics=0
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 
 ENTRYPOINT ["dotnet", "VaultTrade.API.dll"]

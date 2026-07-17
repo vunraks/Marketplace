@@ -5,6 +5,8 @@ using VaultTrade.Infrastructure;
 using VaultTrade.Infrastructure.Configurations;
 using VaultTrade.Infrastructure.Data;
 
+Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();
