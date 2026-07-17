@@ -48,7 +48,9 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 var storagePath = builder.Configuration.GetSection(StorageSettings.SectionName).Get<StorageSettings>()?.UploadPath ?? "uploads";
-var uploadsFullPath = Path.Combine(app.Environment.ContentRootPath, storagePath);
+var uploadsFullPath = app.Environment.IsProduction()
+    ? Path.Combine(Path.GetTempPath(), "vaulttrade", storagePath.Trim('/', '\\'))
+    : Path.Combine(app.Environment.ContentRootPath, storagePath);
 Directory.CreateDirectory(uploadsFullPath);
 app.UseStaticFiles(new StaticFileOptions
 {

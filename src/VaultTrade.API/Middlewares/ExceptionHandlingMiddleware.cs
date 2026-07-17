@@ -32,6 +32,7 @@ public class ExceptionHandlingMiddleware
     {
         var (statusCode, title, detail) = exception switch
         {
+            OperationCanceledException => (499, "Client Closed Request", "The request was canceled"),
             AppException appEx => (appEx.StatusCode, "Application Error", appEx.Message),
             ValidationException valEx => (400, "Validation Error", string.Join("; ", valEx.Errors.Select(e => e.ErrorMessage))),
             _ => (500, "Internal Server Error", "An unexpected error occurred")

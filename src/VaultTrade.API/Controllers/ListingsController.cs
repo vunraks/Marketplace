@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VaultTrade.API.Extensions;
+using VaultTrade.Application.Common;
 using VaultTrade.Application.DTOs.Listings;
 using VaultTrade.Application.Interfaces;
 
@@ -105,13 +106,24 @@ public class ListingsController : ControllerBase
         var urls = new List<string>();
         foreach (var file in files)
         {
-            if (file.Length == 0)
-                return BadRequest(new { detail = "File is empty" });
+            try
+            {
+                if (file.Length == 0)
+                    return BadRequest(new { detail = "File is empty" });
 
-            await using var stream = file.OpenReadStream();
-            var fileName = EnsureImageFileName(file);
-            var url = await _fileStorage.SaveListingImageAsync(id, stream, fileName, cancellationToken);
-            urls.Add(url);
+                await using var stream = file.OpenReadStream();
+                var fileName = EnsureImageFileName(file);
+                var url = await _fileStorage.SaveListingImageAsync(id, stream, fileName, cancellationToken);
+                urls.Add(url);
+            }
+            catch (AppException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new AppException($"Could not upload image '{file.FileName}': {ex.Message}", 500);
+            }
         }
 
         var listing = await _listingService.AddImagesAsync(User.GetUserId(), id, urls, cancellationToken);

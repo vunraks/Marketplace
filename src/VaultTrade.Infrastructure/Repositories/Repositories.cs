@@ -83,9 +83,9 @@ public class CategoryRepository : ICategoryRepository
     public async Task<IReadOnlyList<Category>> GetAllAsync(bool includeInactive, CancellationToken cancellationToken = default)
     {
         var query = _context.Categories
+            .AsNoTracking()
             .Include(c => c.Children.Where(ch => includeInactive || ch.IsActive))
             .Include(c => c.Attributes)
-            .AsSplitQuery()
             .AsQueryable();
 
         if (!includeInactive)
@@ -97,6 +97,7 @@ public class CategoryRepository : ICategoryRepository
     public async Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
     {
         return await _context.Categories
+            .AsNoTracking()
             .Include(c => c.Attributes.OrderBy(a => a.SortOrder))
             .FirstOrDefaultAsync(c => c.Slug == slug && c.IsActive, cancellationToken);
     }
@@ -147,10 +148,10 @@ public class ListingRepository : IListingRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.Listings
+            .AsNoTracking()
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
-            .AsSplitQuery()
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -200,10 +201,10 @@ public class ListingRepository : IListingRepository
         Guid sellerId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _context.Listings
+            .AsNoTracking()
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
-            .AsSplitQuery()
             .Where(l => l.SellerId == sellerId)
             .OrderByDescending(l => l.CreatedAt);
 

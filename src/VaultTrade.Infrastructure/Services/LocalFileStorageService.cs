@@ -14,7 +14,9 @@ public class LocalFileStorageService : IFileStorageService
     public LocalFileStorageService(IOptions<StorageSettings> settings, IWebHostEnvironment environment)
     {
         _settings = settings.Value;
-        _rootPath = Path.Combine(environment.ContentRootPath, _settings.UploadPath);
+        _rootPath = environment.EnvironmentName.Equals("Production", StringComparison.OrdinalIgnoreCase)
+            ? Path.Combine(Path.GetTempPath(), "vaulttrade", _settings.UploadPath.Trim('/', '\\'))
+            : Path.Combine(environment.ContentRootPath, _settings.UploadPath);
         Directory.CreateDirectory(_rootPath);
     }
 
@@ -27,8 +29,19 @@ public class LocalFileStorageService : IFileStorageService
         var safeName = $"{Guid.NewGuid()}{extension}";
         var fullPath = Path.Combine(folder, safeName);
 
-        await using var fs = File.Create(fullPath);
-        await fileStream.CopyToAsync(fs, cancellationToken);
+        try
+        {
+            await using var fs = File.Create(fullPath);
+            await fileStream.CopyToAsync(fs, cancellationToken);
+        }
+        catch (IOException ex)
+        {
+            throw new AppException($"Could not save uploaded image: {ex.Message}", 500);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new AppException($"Could not access upload storage: {ex.Message}", 500);
+        }
 
         return $"/{_settings.UploadPath}/listings/{listingId}/{safeName}".Replace('\\', '/');
     }
@@ -42,8 +55,19 @@ public class LocalFileStorageService : IFileStorageService
         var safeName = $"avatar{extension}";
         var fullPath = Path.Combine(folder, safeName);
 
-        await using var fs = File.Create(fullPath);
-        await fileStream.CopyToAsync(fs, cancellationToken);
+        try
+        {
+            await using var fs = File.Create(fullPath);
+            await fileStream.CopyToAsync(fs, cancellationToken);
+        }
+        catch (IOException ex)
+        {
+            throw new AppException($"Could not save uploaded image: {ex.Message}", 500);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new AppException($"Could not access upload storage: {ex.Message}", 500);
+        }
 
         return $"/{_settings.UploadPath}/avatars/{userId}/{safeName}".Replace('\\', '/');
     }
