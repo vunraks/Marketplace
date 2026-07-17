@@ -16,5 +16,6 @@ export const getErrorMessage = (error: unknown, fallback = 'Произошла �
 export const assetUrl = (path?: string) => {
   if (!path) return undefined
   if (path.startsWith('http')) return path
-  return `http://localhost:5000${path.startsWith('/') ? path : `/${path}`}`
+  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/v1\/?$/, '') ?? ''
+  return `${apiUrl}${path.startsWith('/') ? path : `/${path}`}`
 }

@@ -36,6 +36,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "VaultTrade API v1"));
 }
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 var storagePath = builder.Configuration.GetSection(StorageSettings.SectionName).Get<StorageSettings>()?.UploadPath ?? "uploads";
 var uploadsFullPath = Path.Combine(app.Environment.ContentRootPath, storagePath);
 Directory.CreateDirectory(uploadsFullPath);
@@ -45,7 +47,8 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = $"/{storagePath}"
 });
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+    app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
