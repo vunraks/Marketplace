@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /src
 
 COPY VaultTrade.slnx ./
@@ -12,11 +12,12 @@ RUN dotnet restore src/VaultTrade.API/VaultTrade.API.csproj
 COPY src/ src/
 RUN dotnet publish src/VaultTrade.API/VaultTrade.API.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble AS final
 WORKDIR /app
 EXPOSE 8080
 
 COPY --from=build /app/publish .
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_HTTP_PORTS=8080
+ENV DOTNET_EnableDiagnostics=0
 
 ENTRYPOINT ["dotnet", "VaultTrade.API.dll"]
