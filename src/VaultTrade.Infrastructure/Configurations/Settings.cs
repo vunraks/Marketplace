@@ -15,7 +15,7 @@ public class StorageSettings
     public const string SectionName = "Storage";
     public string UploadPath { get; set; } = "uploads";
     public long MaxFileSizeBytes { get; set; } = 5 * 1024 * 1024;
-    public string[] AllowedExtensions { get; set; } = [".jpg", ".jpeg", ".png", ".webp"];
+    public string[] AllowedExtensions { get; set; } = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
 }
 
 public class ExternalAuthSettings

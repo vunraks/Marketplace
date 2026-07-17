@@ -105,8 +105,12 @@ public class ListingsController : ControllerBase
         var urls = new List<string>();
         foreach (var file in files)
         {
+            if (file.Length == 0)
+                return BadRequest(new { detail = "File is empty" });
+
             await using var stream = file.OpenReadStream();
-            var url = await _fileStorage.SaveListingImageAsync(id, stream, file.FileName, cancellationToken);
+            var fileName = EnsureImageFileName(file);
+            var url = await _fileStorage.SaveListingImageAsync(id, stream, fileName, cancellationToken);
             urls.Add(url);
         }
 
@@ -118,5 +122,23 @@ public class ListingsController : ControllerBase
     {
         var validator = HttpContext.RequestServices.GetRequiredService<IValidator<T>>();
         await validator.ValidateAndThrowAsync(request, cancellationToken);
+    }
+
+    private static string EnsureImageFileName(IFormFile file)
+    {
+        if (!string.IsNullOrWhiteSpace(Path.GetExtension(file.FileName)))
+            return file.FileName;
+
+        var extension = file.ContentType.ToLowerInvariant() switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            "image/gif" => ".gif",
+            "image/avif" => ".avif",
+            _ => string.Empty
+        };
+
+        return $"{Guid.NewGuid()}{extension}";
     }
 }

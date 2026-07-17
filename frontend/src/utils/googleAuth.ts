@@ -4,13 +4,6 @@ type GoogleCredentialResponse = {
   credential?: string
 }
 
-type GooglePromptNotification = {
-  isNotDisplayed: () => boolean
-  isSkippedMoment: () => boolean
-  getNotDisplayedReason: () => string
-  getSkippedReason: () => string
-}
-
 type GoogleButtonText = 'signin_with' | 'signup_with' | 'continue_with'
 
 declare global {
@@ -23,6 +16,7 @@ declare global {
             callback: (response: GoogleCredentialResponse) => void
             ux_mode?: 'popup'
             use_fedcm_for_prompt?: boolean
+            use_fedcm_for_button?: boolean
           }) => void
           renderButton: (parent: HTMLElement, options: {
             theme?: 'outline' | 'filled_blue' | 'filled_black'
@@ -32,8 +26,6 @@ declare global {
             width?: number | string
             locale?: string
           }) => void
-          prompt: (callback?: (notification: GooglePromptNotification) => void) => void
-          cancel: () => void
         }
       }
     }
@@ -41,6 +33,9 @@ declare global {
 }
 
 const googleScriptId = 'google-identity-services'
+let initializedClientId: string | null = null
+let credentialHandler: ((idToken: string) => void) | null = null
+let errorHandler: ((message: string) => void) | null = null
 
 const loadGoogleScript = () => new Promise<void>((resolve, reject) => {
   if (window.google?.accounts?.id) {
@@ -65,35 +60,45 @@ const loadGoogleScript = () => new Promise<void>((resolve, reject) => {
   document.head.appendChild(script)
 })
 
+const initializeGoogle = () => {
+  if (initializedClientId === googleClientId) return
+
+  window.google?.accounts.id.initialize({
+    client_id: googleClientId,
+    ux_mode: 'popup',
+    use_fedcm_for_prompt: false,
+    use_fedcm_for_button: false,
+    callback: (response) => {
+      if (response.credential) {
+        credentialHandler?.(response.credential)
+        return
+      }
+
+      errorHandler?.('Google не вернул токен входа')
+    },
+  })
+
+  initializedClientId = googleClientId
+}
+
 export const renderGoogleSignInButton = async (
   parent: HTMLElement,
   onCredential: (idToken: string) => void,
   onError: (message: string) => void,
   text: GoogleButtonText = 'signin_with',
 ) => {
-  const clientId = googleClientId
-  if (!clientId) {
+  if (!googleClientId) {
     onError('Google Client ID не настроен')
     return
   }
 
+  credentialHandler = onCredential
+  errorHandler = onError
+
   await loadGoogleScript()
+  initializeGoogle()
 
   parent.innerHTML = ''
-  window.google?.accounts.id.initialize({
-    client_id: clientId,
-    ux_mode: 'popup',
-    use_fedcm_for_prompt: true,
-    callback: (response) => {
-      if (response.credential) {
-        onCredential(response.credential)
-        return
-      }
-
-      onError('Google не вернул токен входа')
-    },
-  })
-
   window.google?.accounts.id.renderButton(parent, {
     theme: 'outline',
     size: 'large',
@@ -101,45 +106,5 @@ export const renderGoogleSignInButton = async (
     shape: 'rectangular',
     width: 360,
     locale: 'ru',
-  })
-}
-
-export const getGoogleIdToken = async () => {
-  const clientId = googleClientId
-  if (!clientId) {
-    throw new Error('Google Client ID не настроен')
-  }
-
-  await loadGoogleScript()
-
-  return new Promise<string>((resolve, reject) => {
-    let settled = false
-
-    window.google?.accounts.id.initialize({
-      client_id: clientId,
-      ux_mode: 'popup',
-      use_fedcm_for_prompt: true,
-      callback: (response) => {
-        if (response.credential) {
-          settled = true
-          resolve(response.credential)
-          return
-        }
-
-        reject(new Error('Google не вернул токен входа'))
-      },
-    })
-
-    window.google?.accounts.id.prompt((notification) => {
-      if (settled) return
-      if (notification.isNotDisplayed()) {
-        settled = true
-        reject(new Error(`Google вход не показан: ${notification.getNotDisplayedReason()}`))
-      }
-      if (notification.isSkippedMoment()) {
-        settled = true
-        reject(new Error(`Google вход отменён: ${notification.getSkippedReason()}`))
-      }
-    })
   })
 }

@@ -20,11 +20,11 @@ public class LocalFileStorageService : IFileStorageService
 
     public async Task<string> SaveListingImageAsync(Guid listingId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
-        ValidateFile(fileName, fileStream);
+        ValidateFile(fileName, fileStream, out var extension);
         var folder = Path.Combine(_rootPath, "listings", listingId.ToString());
         Directory.CreateDirectory(folder);
 
-        var safeName = $"{Guid.NewGuid()}{Path.GetExtension(fileName).ToLowerInvariant()}";
+        var safeName = $"{Guid.NewGuid()}{extension}";
         var fullPath = Path.Combine(folder, safeName);
 
         await using var fs = File.Create(fullPath);
@@ -35,11 +35,11 @@ public class LocalFileStorageService : IFileStorageService
 
     public async Task<string> SaveAvatarAsync(Guid userId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
-        ValidateFile(fileName, fileStream);
+        ValidateFile(fileName, fileStream, out var extension);
         var folder = Path.Combine(_rootPath, "avatars", userId.ToString());
         Directory.CreateDirectory(folder);
 
-        var safeName = $"avatar{Path.GetExtension(fileName).ToLowerInvariant()}";
+        var safeName = $"avatar{extension}";
         var fullPath = Path.Combine(folder, safeName);
 
         await using var fs = File.Create(fullPath);
@@ -59,13 +59,13 @@ public class LocalFileStorageService : IFileStorageService
             File.Delete(fullPath);
     }
 
-    private void ValidateFile(string fileName, Stream stream)
+    private void ValidateFile(string fileName, Stream stream, out string extension)
     {
-        var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        if (!_settings.AllowedExtensions.Contains(ext))
-            throw new AppException("Invalid file type. Allowed: jpg, jpeg, png, webp");
+        extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (!_settings.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            throw new AppException($"Invalid file type. Allowed: {string.Join(", ", _settings.AllowedExtensions)}");
 
-        if (stream.Length > _settings.MaxFileSizeBytes)
+        if (stream.CanSeek && stream.Length > _settings.MaxFileSizeBytes)
             throw new AppException("File size exceeds 5 MB limit");
     }
 }
