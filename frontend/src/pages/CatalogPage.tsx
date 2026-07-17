@@ -28,7 +28,7 @@ export default function CatalogPage() {
   const categoryId = flattenCategories(categories).find((c) => c.slug === categorySlug)?.id
 
   useEffect(() => {
-    categoriesApi.getTree().then((r) => setCategories(r.data))
+    categoriesApi.getTree().then((r) => setCategories(Array.isArray(r.data) ? r.data : []))
   }, [])
 
   useEffect(() => {
@@ -36,8 +36,8 @@ export default function CatalogPage() {
     listingsApi
       .getList({ page, pageSize: 12, search: search || undefined, categoryId, sortBy, sortOrder: 'desc', status: 'Active' })
       .then((r) => {
-        setListings(r.data.items)
-        setTotalPages(r.data.totalPages)
+        setListings(Array.isArray(r.data.items) ? r.data.items : [])
+        setTotalPages(Number(r.data.totalPages) || 1)
       })
       .finally(() => setLoading(false))
   }, [page, search, categoryId, sortBy])

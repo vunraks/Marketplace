@@ -23,8 +23,8 @@ export default function HomePage() {
       listingsApi.getList({ pageSize: 8, sortBy: 'createdAt', sortOrder: 'desc' }),
     ])
       .then(([catRes, listRes]) => {
-        setCategories(catRes.data.slice(0, 6))
-        setListings(listRes.data.items)
+        setCategories(Array.isArray(catRes.data) ? catRes.data.slice(0, 6) : [])
+        setListings(Array.isArray(listRes.data.items) ? listRes.data.items : [])
       })
       .finally(() => setLoading(false))
   }, [])

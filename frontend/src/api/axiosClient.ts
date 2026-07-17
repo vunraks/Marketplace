@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { storage } from '../utils/storage'
 import type { AuthResponse } from '../types'
+import { apiBaseUrl } from '../config/api'
 
-const baseURL = import.meta.env.VITE_API_URL ?? '/api/v1'
+const baseURL = apiBaseUrl
 
 export const axiosClient = axios.create({
   baseURL,

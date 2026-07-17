@@ -40,7 +40,7 @@ export default function CreateListingPage() {
   })
 
   useEffect(() => {
-    categoriesApi.getTree().then((r) => setCategories(flattenCategories(r.data)))
+    categoriesApi.getTree().then((r) => setCategories(flattenCategories(Array.isArray(r.data) ? r.data : [])))
   }, [])
 
   useEffect(() => {

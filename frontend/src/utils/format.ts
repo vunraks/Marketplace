@@ -1,3 +1,5 @@
+import { apiOrigin } from '../config/api'
+
 export const formatPrice = (price: number, currency = 'RUB') =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency, maximumFractionDigits: 0 }).format(price)
 
@@ -16,6 +18,5 @@ export const getErrorMessage = (error: unknown, fallback = 'Произошла �
 export const assetUrl = (path?: string) => {
   if (!path) return undefined
   if (path.startsWith('http')) return path
-  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/v1\/?$/, '') ?? ''
-  return `${apiUrl}${path.startsWith('/') ? path : `/${path}`}`
+  return `${apiOrigin}${path.startsWith('/') ? path : `/${path}`}`
 }
