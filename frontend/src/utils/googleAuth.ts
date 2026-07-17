@@ -11,6 +11,8 @@ type GooglePromptNotification = {
   getSkippedReason: () => string
 }
 
+type GoogleButtonText = 'signin_with' | 'signup_with' | 'continue_with'
+
 declare global {
   interface Window {
     google?: {
@@ -20,6 +22,15 @@ declare global {
             client_id: string
             callback: (response: GoogleCredentialResponse) => void
             ux_mode?: 'popup'
+            use_fedcm_for_prompt?: boolean
+          }) => void
+          renderButton: (parent: HTMLElement, options: {
+            theme?: 'outline' | 'filled_blue' | 'filled_black'
+            size?: 'large' | 'medium' | 'small'
+            text?: GoogleButtonText
+            shape?: 'rectangular' | 'pill' | 'circle' | 'square'
+            width?: number | string
+            locale?: string
           }) => void
           prompt: (callback?: (notification: GooglePromptNotification) => void) => void
           cancel: () => void
@@ -54,6 +65,45 @@ const loadGoogleScript = () => new Promise<void>((resolve, reject) => {
   document.head.appendChild(script)
 })
 
+export const renderGoogleSignInButton = async (
+  parent: HTMLElement,
+  onCredential: (idToken: string) => void,
+  onError: (message: string) => void,
+  text: GoogleButtonText = 'signin_with',
+) => {
+  const clientId = googleClientId
+  if (!clientId) {
+    onError('Google Client ID не настроен')
+    return
+  }
+
+  await loadGoogleScript()
+
+  parent.innerHTML = ''
+  window.google?.accounts.id.initialize({
+    client_id: clientId,
+    ux_mode: 'popup',
+    use_fedcm_for_prompt: true,
+    callback: (response) => {
+      if (response.credential) {
+        onCredential(response.credential)
+        return
+      }
+
+      onError('Google не вернул токен входа')
+    },
+  })
+
+  window.google?.accounts.id.renderButton(parent, {
+    theme: 'outline',
+    size: 'large',
+    text,
+    shape: 'rectangular',
+    width: 360,
+    locale: 'ru',
+  })
+}
+
 export const getGoogleIdToken = async () => {
   const clientId = googleClientId
   if (!clientId) {
@@ -68,6 +118,7 @@ export const getGoogleIdToken = async () => {
     window.google?.accounts.id.initialize({
       client_id: clientId,
       ux_mode: 'popup',
+      use_fedcm_for_prompt: true,
       callback: (response) => {
         if (response.credential) {
           settled = true

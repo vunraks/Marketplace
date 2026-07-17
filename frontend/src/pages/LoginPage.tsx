@@ -1,15 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Typography, TextField, Button, Alert, Link, Stack, Divider, Box } from '@mui/material'
-import GoogleIcon from '@mui/icons-material/Google'
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import LoginIcon from '@mui/icons-material/Login'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { clearError, login, loginWithGoogle } from '../store/authSlice'
-import { getGoogleIdToken } from '../utils/googleAuth'
+import { renderGoogleSignInButton } from '../utils/googleAuth'
 
 const schema = z.object({
   email: z.string().email('Введите корректный email'),
@@ -23,6 +22,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { loading, error } = useAppSelector((s) => s.auth)
   const [googleError, setGoogleError] = useState('')
+  const googleButtonRef = useRef<HTMLDivElement | null>(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -34,17 +34,27 @@ export default function LoginPage() {
     if (login.fulfilled.match(result)) navigate('/')
   }
 
-  const startGoogleLogin = async () => {
+  const submitGoogleToken = async (idToken: string) => {
     dispatch(clearError())
     setGoogleError('')
     try {
-      const idToken = await getGoogleIdToken()
       const result = await dispatch(loginWithGoogle(idToken))
       if (loginWithGoogle.fulfilled.match(result)) navigate('/')
     } catch (e) {
       setGoogleError(e instanceof Error ? e.message : 'Не удалось войти через Google')
     }
   }
+
+  useEffect(() => {
+    if (!googleButtonRef.current) return
+
+    renderGoogleSignInButton(
+      googleButtonRef.current,
+      (idToken) => void submitGoogleToken(idToken),
+      setGoogleError,
+      'signin_with',
+    ).catch((e) => setGoogleError(e instanceof Error ? e.message : 'Не удалось загрузить Google вход'))
+  }, [])
 
   return (
     <>
@@ -56,9 +66,7 @@ export default function LoginPage() {
       </Box>
 
       <Stack spacing={1.25}>
-        <Button variant="outlined" size="large" startIcon={<GoogleIcon />} onClick={startGoogleLogin} disabled={loading}>
-          Войти через Google
-        </Button>
+        <Box ref={googleButtonRef} sx={{ minHeight: 44, display: 'flex', justifyContent: 'center' }} />
         <Button variant="outlined" size="large" startIcon={<SportsEsportsIcon />} disabled>
           Войти через Steam
         </Button>
