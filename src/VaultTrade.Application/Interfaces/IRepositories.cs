@@ -62,11 +62,15 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     Task<Listing?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<ListingImageUploadInfo?> GetImageUploadInfoAsync(Guid id, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<Listing> Items, int TotalCount)> GetBySellerAsync(Guid sellerId, int page, int pageSize, CancellationToken cancellationToken = default);
     Task AddAsync(Listing listing, CancellationToken cancellationToken = default);
+    Task AddImagesAsync(IReadOnlyList<ListingImage> images, CancellationToken cancellationToken = default);
     void Update(Listing listing);
     void Remove(Listing listing);
 }
+
+public record ListingImageUploadInfo(Guid Id, Guid SellerId, string Title, int NextSortOrder, bool ShouldSetPrimary);
 
 public interface IRefreshTokenRepository
 {

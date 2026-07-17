@@ -214,23 +214,33 @@ public class ListingService : IListingService
     {
         await EnsureSellerAccessAsync(sellerId, cancellationToken);
 
-        var listing = await GetOwnedListingAsync(sellerId, listingId, cancellationToken);
-        var nextSortOrder = listing.Images.Count == 0 ? 0 : listing.Images.Max(i => i.SortOrder) + 1;
-        var shouldSetPrimary = listing.Images.All(i => !i.IsPrimary);
+        var uploadInfo = await _unitOfWork.Listings.GetImageUploadInfoAsync(listingId, cancellationToken)
+            ?? throw new NotFoundException("Listing not found");
+
+        if (uploadInfo.SellerId != sellerId)
+            throw new ForbiddenException("You can only modify your own listings");
+
+        var nextSortOrder = uploadInfo.NextSortOrder;
+        var shouldSetPrimary = uploadInfo.ShouldSetPrimary;
+        var images = new List<ListingImage>();
 
         foreach (var url in urls.Where(u => !string.IsNullOrWhiteSpace(u)))
         {
-            listing.Images.Add(new ListingImage
+            images.Add(new ListingImage
             {
+                ListingId = listingId,
                 Url = url,
-                AltText = listing.Title,
+                AltText = uploadInfo.Title,
                 SortOrder = nextSortOrder++,
                 IsPrimary = shouldSetPrimary
             });
             shouldSetPrimary = false;
         }
 
-        listing.UpdatedAt = DateTime.UtcNow;
+        if (images.Count == 0)
+            throw new AppException("No valid image URLs were provided");
+
+        await _unitOfWork.Listings.AddImagesAsync(images, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var updated = await _unitOfWork.Listings.GetByIdWithDetailsAsync(listingId, cancellationToken);

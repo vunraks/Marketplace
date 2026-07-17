@@ -86,6 +86,7 @@ public class CategoryRepository : ICategoryRepository
             .AsNoTracking()
             .Include(c => c.Children.Where(ch => includeInactive || ch.IsActive))
             .Include(c => c.Attributes)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (!includeInactive)
@@ -152,6 +153,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -197,6 +199,20 @@ public class ListingRepository : IListingRepository
             .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
     }
 
+    public async Task<ListingImageUploadInfo?> GetImageUploadInfoAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Listings
+            .AsNoTracking()
+            .Where(l => l.Id == id)
+            .Select(l => new ListingImageUploadInfo(
+                l.Id,
+                l.SellerId,
+                l.Title,
+                (l.Images.Select(i => (int?)i.SortOrder).Max() ?? -1) + 1,
+                !l.Images.Any(i => i.IsPrimary)))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<(IReadOnlyList<Listing> Items, int TotalCount)> GetBySellerAsync(
         Guid sellerId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
@@ -205,6 +221,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
+            .AsSplitQuery()
             .Where(l => l.SellerId == sellerId)
             .OrderByDescending(l => l.CreatedAt);
 
@@ -215,6 +232,9 @@ public class ListingRepository : IListingRepository
 
     public async Task AddAsync(Listing listing, CancellationToken cancellationToken = default)
         => await _context.Listings.AddAsync(listing, cancellationToken);
+
+    public async Task AddImagesAsync(IReadOnlyList<ListingImage> images, CancellationToken cancellationToken = default)
+        => await _context.ListingImages.AddRangeAsync(images, cancellationToken);
 
     public void Update(Listing listing) => _context.Listings.Update(listing);
 
