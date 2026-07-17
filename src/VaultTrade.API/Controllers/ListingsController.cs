@@ -110,7 +110,8 @@ public class ListingsController : ControllerBase
             urls.Add(url);
         }
 
-        return Created(string.Empty, new { urls });
+        var listing = await _listingService.AddImagesAsync(User.GetUserId(), id, urls, cancellationToken);
+        return Created(string.Empty, listing);
     }
 
     private async Task ValidateAsync<T>(T request, CancellationToken cancellationToken)

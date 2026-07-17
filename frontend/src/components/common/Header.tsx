@@ -108,9 +108,6 @@ export default function Header() {
               <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
                 <MenuItem component={RouterLink} to="/profile" onClick={() => setAnchor(null)}>Профиль</MenuItem>
                 <MenuItem component={RouterLink} to="/chats" onClick={() => setAnchor(null)}>Чаты {unreadCount > 0 ? `(${unreadCount})` : ''}</MenuItem>
-                {!isSeller && (
-                  <MenuItem component={RouterLink} to="/become-seller" onClick={() => setAnchor(null)}>Стать продавцом</MenuItem>
-                )}
                 {isSeller && (
                   <MenuItem component={RouterLink} to="/my-listings/create" onClick={() => setAnchor(null)}>Создать объявление</MenuItem>
                 )}

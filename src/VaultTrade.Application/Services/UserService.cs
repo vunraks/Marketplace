@@ -136,6 +136,41 @@ public class UserService : IUserService
         return ToAdminDto(user);
     }
 
+    public async Task<AdminUserDto> AdjustBalanceAsync(Guid userId, AdjustUserBalanceRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.Amount == 0)
+            throw new AppException("Amount must not be zero");
+
+        var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found");
+
+        var nextBalance = user.VirtualBalance + request.Amount;
+        if (nextBalance < 0)
+            throw new AppException("Balance cannot be negative");
+
+        user.VirtualBalance = nextBalance;
+        user.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToAdminDto(user);
+    }
+
+    public async Task<AdminUserDto> UpdateBlockAsync(Guid userId, UpdateUserBlockRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found");
+
+        user.IsBlocked = request.IsBlocked;
+        user.BlockedUntil = request.IsBlocked ? request.BlockedUntil : null;
+        user.BlockReason = request.IsBlocked ? request.Reason?.Trim() : null;
+        user.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToAdminDto(user);
+    }
+
     public async Task BecomeSellerAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
@@ -171,6 +206,8 @@ public class UserService : IUserService
         Username = user.Username,
         IsActive = user.IsActive,
         IsBlocked = user.IsBlocked,
+        BlockedUntil = user.BlockedUntil,
+        BlockReason = user.BlockReason,
         IsEmailVerified = user.IsEmailVerified,
         VirtualBalance = user.VirtualBalance,
         Roles = user.UserRoles.Select(ur => ur.Role.Name).OrderBy(r => r).ToList(),

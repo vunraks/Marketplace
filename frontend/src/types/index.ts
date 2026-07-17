@@ -23,6 +23,9 @@ export interface UserProfile {
   bio?: string
   phone?: string
   isEmailVerified: boolean
+  isBlocked: boolean
+  blockedUntil?: string
+  blockReason?: string
   roles: string[]
   virtualBalance: number
   createdAt: string
@@ -34,6 +37,8 @@ export interface AdminUser {
   username: string
   isActive: boolean
   isBlocked: boolean
+  blockedUntil?: string
+  blockReason?: string
   isEmailVerified: boolean
   virtualBalance: number
   roles: string[]
@@ -177,4 +182,10 @@ export interface NotificationItem {
 export interface NotificationsResult {
   items: NotificationItem[]
   unreadCount: number
+}
+
+export interface ProfilePost {
+  id: string
+  content: string
+  createdAt: string
 }

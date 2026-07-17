@@ -52,7 +52,6 @@ public class ListingService : IListingService
             ?? throw new NotFoundException("Listing not found");
 
         listing.ViewCount++;
-        _unitOfWork.Listings.Update(listing);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return _mapper.Map<ListingDetailDto>(listing);
@@ -60,6 +59,8 @@ public class ListingService : IListingService
 
     public async Task<ListingDetailDto> CreateAsync(Guid sellerId, CreateListingRequest request, CancellationToken cancellationToken = default)
     {
+        await EnsureSellerAccessAsync(sellerId, cancellationToken);
+
         var category = await _unitOfWork.Categories.GetByIdAsync(request.CategoryId, cancellationToken)
             ?? throw new NotFoundException("Category not found");
 
@@ -130,6 +131,7 @@ public class ListingService : IListingService
 
     public async Task<ListingDetailDto> UpdateAsync(Guid sellerId, Guid listingId, UpdateListingRequest request, CancellationToken cancellationToken = default)
     {
+        await EnsureSellerAccessAsync(sellerId, cancellationToken);
         var listing = await GetOwnedListingAsync(sellerId, listingId, cancellationToken);
 
         if (listing.Status is ListingStatus.Sold)
@@ -146,8 +148,6 @@ public class ListingService : IListingService
         listing.DeliveryInfo = request.DeliveryInfo?.Trim();
         listing.UpdatedAt = DateTime.UtcNow;
         listing.Status = ListingStatus.PendingModeration;
-
-        _unitOfWork.Listings.Update(listing);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var updated = await _unitOfWork.Listings.GetByIdWithDetailsAsync(listingId, cancellationToken);
@@ -156,6 +156,7 @@ public class ListingService : IListingService
 
     public async Task DeleteAsync(Guid userId, Guid listingId, CancellationToken cancellationToken = default)
     {
+        await EnsureSellerAccessAsync(userId, cancellationToken);
         var listing = await GetOwnedListingAsync(userId, listingId, cancellationToken);
         _unitOfWork.Listings.Remove(listing);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -186,8 +187,6 @@ public class ListingService : IListingService
 
         if (newStatus == ListingStatus.Active)
             listing.PublishedAt = DateTime.UtcNow;
-
-        _unitOfWork.Listings.Update(listing);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return _mapper.Map<ListingDetailDto>(listing);
@@ -195,6 +194,8 @@ public class ListingService : IListingService
 
     public async Task<PagedResult<ListingCardDto>> GetMyListingsAsync(Guid sellerId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
+        await EnsureSellerAccessAsync(sellerId, cancellationToken);
+
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
@@ -209,6 +210,33 @@ public class ListingService : IListingService
         };
     }
 
+    public async Task<ListingDetailDto> AddImagesAsync(Guid sellerId, Guid listingId, IReadOnlyList<string> urls, CancellationToken cancellationToken = default)
+    {
+        await EnsureSellerAccessAsync(sellerId, cancellationToken);
+
+        var listing = await GetOwnedListingAsync(sellerId, listingId, cancellationToken);
+        var nextSortOrder = listing.Images.Count == 0 ? 0 : listing.Images.Max(i => i.SortOrder) + 1;
+        var shouldSetPrimary = listing.Images.All(i => !i.IsPrimary);
+
+        foreach (var url in urls.Where(u => !string.IsNullOrWhiteSpace(u)))
+        {
+            listing.Images.Add(new ListingImage
+            {
+                Url = url,
+                AltText = listing.Title,
+                SortOrder = nextSortOrder++,
+                IsPrimary = shouldSetPrimary
+            });
+            shouldSetPrimary = false;
+        }
+
+        listing.UpdatedAt = DateTime.UtcNow;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var updated = await _unitOfWork.Listings.GetByIdWithDetailsAsync(listingId, cancellationToken);
+        return _mapper.Map<ListingDetailDto>(updated!);
+    }
+
     private async Task<Listing> GetOwnedListingAsync(Guid sellerId, Guid listingId, CancellationToken cancellationToken)
     {
         var listing = await _unitOfWork.Listings.GetByIdWithDetailsAsync(listingId, cancellationToken)
@@ -218,5 +246,14 @@ public class ListingService : IListingService
             throw new ForbiddenException("You can only modify your own listings");
 
         return listing;
+    }
+
+    private async Task EnsureSellerAccessAsync(Guid sellerId, CancellationToken cancellationToken)
+    {
+        var seller = await _unitOfWork.Users.GetByIdAsync(sellerId, cancellationToken)
+            ?? throw new NotFoundException("User not found");
+
+        if (seller.IsBlocked && (seller.BlockedUntil is null || seller.BlockedUntil > DateTime.UtcNow))
+            throw new ForbiddenException("Seller access is restricted");
     }
 }

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Typography, TextField, Button, MenuItem, Alert, Paper, Stack } from '@mui/material'
+import { Box, Typography, TextField, Button, MenuItem, Alert, Paper, Stack } from '@mui/material'
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import { useNavigate } from 'react-router-dom'
 import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
@@ -30,6 +31,8 @@ export default function CreateListingPage() {
   const [categories, setCategories] = useState<CategoryTree[]>([])
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -39,6 +42,19 @@ export default function CreateListingPage() {
   useEffect(() => {
     categoriesApi.getTree().then((r) => setCategories(flattenCategories(r.data)))
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  const selectFiles = (selected: FileList | null) => {
+    const nextFiles = Array.from(selected ?? []).slice(0, 6)
+    setFiles(nextFiles)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(nextFiles[0] ? URL.createObjectURL(nextFiles[0]) : null)
+  }
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true)
@@ -54,7 +70,10 @@ export default function CreateListingPage() {
         deliveryInfo: data.deliveryInfo,
         tags,
       })
-      navigate(`/listing/${listing.id}`)
+      const finalListing = files.length > 0
+        ? (await listingsApi.uploadImages(listing.id, files)).data
+        : listing
+      navigate(`/listing/${finalListing.id}`)
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось создать объявление'))
     } finally {
@@ -82,6 +101,32 @@ export default function CreateListingPage() {
           </Stack>
           <TextField fullWidth label="Информация о выдаче/доставке" {...register('deliveryInfo')} />
           <TextField fullWidth label="Теги через запятую" {...register('tags')} />
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.025)' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+              <Box sx={{ width: { xs: '100%', sm: 180 }, aspectRatio: '16 / 10', borderRadius: 1.5, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center' }}>
+                {previewUrl ? (
+                  <Box component="img" src={previewUrl} alt="Превью" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <ImageOutlinedIcon color="primary" />
+                )}
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography fontWeight={800}>Картинка товара</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Первая выбранная картинка станет обложкой и будет отображаться в каталоге и на странице товара.
+                </Typography>
+                <Button component="label" variant="outlined" startIcon={<ImageOutlinedIcon />}>
+                  Выбрать изображения
+                  <input hidden type="file" accept="image/*" multiple onChange={(e) => selectFiles(e.target.files)} />
+                </Button>
+                {files.length > 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Выбрано файлов: {files.length}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+          </Paper>
           <Button type="submit" variant="contained" size="large" disabled={submitting}>
             {submitting ? 'Сохранение...' : 'Отправить на модерацию'}
           </Button>

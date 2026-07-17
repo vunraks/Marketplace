@@ -317,13 +317,13 @@ namespace VaultTrade.Infrastructure.Data.Migrations
                         .HasMaxLength(220)
                         .HasColumnType("character varying(220)");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
                     b.Property<int>("StockQuantity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -653,6 +653,33 @@ namespace VaultTrade.Infrastructure.Data.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
+            modelBuilder.Entity("VaultTrade.Domain.Entities.ProfilePost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("profile_posts", (string)null);
+                });
+
             modelBuilder.Entity("VaultTrade.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -888,6 +915,13 @@ namespace VaultTrade.Infrastructure.Data.Migrations
 
                     b.Property<string>("Bio")
                         .HasColumnType("text");
+
+                    b.Property<string>("BlockReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("BlockedUntil")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1242,6 +1276,17 @@ namespace VaultTrade.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("VaultTrade.Domain.Entities.ProfilePost", b =>
+                {
+                    b.HasOne("VaultTrade.Domain.Entities.User", "User")
+                        .WithMany("ProfilePosts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("VaultTrade.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("VaultTrade.Domain.Entities.User", "User")
@@ -1395,6 +1440,8 @@ namespace VaultTrade.Infrastructure.Data.Migrations
                     b.Navigation("Listings");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("ProfilePosts");
 
                     b.Navigation("Purchases");
 

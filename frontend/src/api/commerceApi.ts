@@ -4,6 +4,7 @@ import type { Conversation, NotificationsResult, Order, SellerReview, Wallet } f
 export const commerceApi = {
   getWallet: () => axiosClient.get<Wallet>('/wallet'),
   topUpWallet: (amount: number) => axiosClient.post<Wallet>('/wallet/top-up', { amount }),
+  withdrawWallet: (amount: number) => axiosClient.post<Wallet>('/wallet/withdraw', { amount }),
   createOrder: (listingId: string, quantity: number, buyerNote?: string) =>
     axiosClient.post<Order>('/orders', { listingId, quantity, buyerNote }),
   confirmOrder: (orderId: string) => axiosClient.post<Order>(`/orders/${orderId}/confirm`),

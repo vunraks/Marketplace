@@ -27,6 +27,7 @@ public class ConversationsController : ControllerBase
             .Include(c => c.Participants).ThenInclude(p => p.User)
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
             .Include(c => c.Listing)
+            .AsSplitQuery()
             .Where(c => c.Participants.Any(p => p.UserId == userId))
             .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -127,6 +128,7 @@ public class ConversationsController : ControllerBase
             .AsNoTracking()
             .Include(c => c.Participants).ThenInclude(p => p.User)
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
             ?? throw new NotFoundException("Conversation not found");
     }

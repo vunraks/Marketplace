@@ -30,6 +30,8 @@ public interface IUserService
     Task<PublicUserProfileDto> GetPublicProfileAsync(string username, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AdminUserDto>> GetAllForAdminAsync(CancellationToken cancellationToken = default);
     Task<AdminUserDto> UpdateRolesAsync(Guid adminId, Guid userId, UpdateUserRolesRequest request, CancellationToken cancellationToken = default);
+    Task<AdminUserDto> AdjustBalanceAsync(Guid userId, AdjustUserBalanceRequest request, CancellationToken cancellationToken = default);
+    Task<AdminUserDto> UpdateBlockAsync(Guid userId, UpdateUserBlockRequest request, CancellationToken cancellationToken = default);
     Task BecomeSellerAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
@@ -48,6 +50,7 @@ public interface IListingService
     Task DeleteAsync(Guid userId, Guid listingId, CancellationToken cancellationToken = default);
     Task<ListingDetailDto> UpdateStatusAsync(Guid userId, Guid listingId, string status, CancellationToken cancellationToken = default);
     Task<PagedResult<ListingCardDto>> GetMyListingsAsync(Guid sellerId, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<ListingDetailDto> AddImagesAsync(Guid sellerId, Guid listingId, IReadOnlyList<string> urls, CancellationToken cancellationToken = default);
 }
 
 public interface IFileStorageService

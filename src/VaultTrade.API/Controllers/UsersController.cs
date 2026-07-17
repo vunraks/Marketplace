@@ -63,6 +63,24 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
+    [HttpPost("admin/{id:guid}/balance")]
+    [Authorize(Policy = "RequireAdmin")]
+    [ProducesResponseType(typeof(AdminUserDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AdjustBalance(Guid id, [FromBody] AdjustUserBalanceRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userService.AdjustBalanceAsync(id, request, cancellationToken);
+        return Ok(user);
+    }
+
+    [HttpPut("admin/{id:guid}/block")]
+    [Authorize(Policy = "RequireAdmin")]
+    [ProducesResponseType(typeof(AdminUserDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateBlock(Guid id, [FromBody] UpdateUserBlockRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userService.UpdateBlockAsync(id, request, cancellationToken);
+        return Ok(user);
+    }
+
     [HttpGet("{username}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(PublicUserProfileDto), StatusCodes.Status200OK)]

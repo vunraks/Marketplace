@@ -32,6 +32,8 @@ export default function AdminUsersPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
+  const [balanceAmounts, setBalanceAmounts] = useState<Record<string, string>>({})
+  const [blockUntilValues, setBlockUntilValues] = useState<Record<string, string>>({})
 
   const filteredUsers = useMemo(() => {
     const value = query.trim().toLowerCase()
@@ -42,6 +44,10 @@ export default function AdminUsersPage() {
       user.roles.some((role) => role.toLowerCase().includes(value)),
     )
   }, [query, users])
+
+  const replaceUser = (data: AdminUser) => {
+    setUsers((current) => current.map((item) => item.id === data.id ? data : item))
+  }
 
   const load = () => {
     setLoading(true)
@@ -67,9 +73,50 @@ export default function AdminUsersPage() {
 
     try {
       const { data } = await usersApi.updateAdminUserRoles(user.id, Array.from(nextRoles))
-      setUsers((current) => current.map((item) => item.id === data.id ? data : item))
+      replaceUser(data)
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось обновить роли пользователя'))
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const adjustBalance = async (user: AdminUser, direction: 'add' | 'remove') => {
+    const amount = Number((balanceAmounts[user.id] ?? '').replace(',', '.'))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError('Введите положительную сумму для изменения баланса.')
+      return
+    }
+
+    setProcessingId(user.id)
+    setError('')
+    try {
+      const { data } = await usersApi.adjustAdminUserBalance(user.id, direction === 'add' ? amount : -amount)
+      replaceUser(data)
+      setBalanceAmounts((current) => ({ ...current, [user.id]: '' }))
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось изменить баланс пользователя'))
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const toggleBlock = async (user: AdminUser, enabled: boolean) => {
+    setProcessingId(user.id)
+    setError('')
+
+    const localUntil = blockUntilValues[user.id]
+    const blockedUntil = enabled && localUntil ? new Date(localUntil).toISOString() : null
+
+    try {
+      const { data } = await usersApi.updateAdminUserBlock(user.id, {
+        isBlocked: enabled,
+        blockedUntil,
+        reason: enabled ? 'Ограничение продавца администратором' : '',
+      })
+      replaceUser(data)
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось обновить ограничение пользователя'))
     } finally {
       setProcessingId(null)
     }
@@ -86,7 +133,7 @@ export default function AdminUsersPage() {
             <Typography variant="h4" fontWeight={800}>Пользователи</Typography>
           </Stack>
           <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-            Админ управляет ролями, модераторы получают доступ только к проверке объявлений.
+            Админ управляет ролями, балансом и временными ограничениями продавцов.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -105,9 +152,10 @@ export default function AdminUsersPage() {
               <TableCell>Пользователь</TableCell>
               <TableCell>Роли</TableCell>
               <TableCell>Статус</TableCell>
-              <TableCell align="right">Баланс</TableCell>
+              <TableCell>Баланс</TableCell>
               <TableCell align="right">Объявления</TableCell>
               <TableCell>Последний вход</TableCell>
+              <TableCell>Ограничение</TableCell>
               <TableCell align="right">Права</TableCell>
             </TableRow>
           </TableHead>
@@ -131,13 +179,45 @@ export default function AdminUsersPage() {
                   <TableCell>
                     <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
                       <Chip label={user.isActive ? 'Активен' : 'Отключён'} size="small" color={user.isActive ? 'success' : 'default'} />
-                      {user.isBlocked && <Chip label="Заблокирован" size="small" color="error" />}
+                      {user.isBlocked && <Chip label="Ограничен" size="small" color="error" />}
                       {user.isEmailVerified && <Chip label="Email OK" size="small" variant="outlined" />}
                     </Stack>
                   </TableCell>
-                  <TableCell align="right">{user.virtualBalance.toLocaleString('ru-RU')} VT</TableCell>
+                  <TableCell>
+                    <Typography fontWeight={800}>{user.virtualBalance.toLocaleString('ru-RU')} VT</Typography>
+                    <Stack direction="row" spacing={0.75} sx={{ mt: 1 }} alignItems="center">
+                      <TextField
+                        size="small"
+                        type="number"
+                        placeholder="VT"
+                        value={balanceAmounts[user.id] ?? ''}
+                        onChange={(e) => setBalanceAmounts((current) => ({ ...current, [user.id]: e.target.value }))}
+                        sx={{ width: 96 }}
+                        inputProps={{ min: 0, step: 1 }}
+                      />
+                      <Button size="small" variant="contained" disabled={processingId === user.id} onClick={() => adjustBalance(user, 'add')}>+</Button>
+                      <Button size="small" variant="outlined" disabled={processingId === user.id} onClick={() => adjustBalance(user, 'remove')}>-</Button>
+                    </Stack>
+                  </TableCell>
                   <TableCell align="right">{user.listingsCount}</TableCell>
                   <TableCell>{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Не входил'}</TableCell>
+                  <TableCell>
+                    <Stack spacing={0.75} sx={{ minWidth: 210 }}>
+                      <TextField
+                        size="small"
+                        type="datetime-local"
+                        label="До"
+                        value={blockUntilValues[user.id] ?? ''}
+                        onChange={(e) => setBlockUntilValues((current) => ({ ...current, [user.id]: e.target.value }))}
+                        InputLabelProps={{ shrink: true }}
+                        disabled={isAdmin || processingId === user.id}
+                      />
+                      <FormControlLabel
+                        control={<Switch checked={user.isBlocked} disabled={isAdmin || processingId === user.id} onChange={(e) => toggleBlock(user, e.target.checked)} />}
+                        label={user.isBlocked ? `Ограничен${user.blockedUntil ? ` до ${formatDate(user.blockedUntil)}` : ''}` : 'Не ограничен'}
+                      />
+                    </Stack>
+                  </TableCell>
                   <TableCell align="right">
                     <Stack spacing={0.5} alignItems="flex-end">
                       <FormControlLabel

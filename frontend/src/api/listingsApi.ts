@@ -30,6 +30,13 @@ export const listingsApi = {
   getMy: (page = 1, pageSize = 20) =>
     axiosClient.get<PagedResult<ListingCard>>('/listings/my', { params: { page, pageSize } }),
   create: (payload: CreateListingPayload) => axiosClient.post<ListingDetail>('/listings', payload),
+  uploadImages: (id: string, files: File[]) => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    return axiosClient.post<ListingDetail>(`/listings/${id}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
   update: (id: string, payload: CreateListingPayload) =>
     axiosClient.put<ListingDetail>(`/listings/${id}`, payload),
   updateStatus: (id: string, status: string) =>

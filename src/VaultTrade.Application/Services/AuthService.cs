@@ -61,7 +61,7 @@ public class AuthService : IAuthService
         var user = await _unitOfWork.Users.GetByEmailAsync(request.Email.ToLowerInvariant(), cancellationToken)
             ?? throw new UnauthorizedAppException("Invalid email or password");
 
-        if (user.IsBlocked || !user.IsActive)
+        if (IsAccessBlocked(user) || !user.IsActive)
             throw new ForbiddenException("Account is blocked or inactive");
 
         if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
@@ -108,7 +108,7 @@ public class AuthService : IAuthService
             await _unitOfWork.Users.AddAsync(user, cancellationToken);
         }
 
-        if (user.IsBlocked || !user.IsActive)
+        if (IsAccessBlocked(user) || !user.IsActive)
             throw new ForbiddenException("Account is blocked or inactive");
 
         user.LastLoginAt = DateTime.UtcNow;
@@ -219,6 +219,11 @@ public class AuthService : IAuthService
             rawRefresh,
             900,
             _mapper.Map<UserSummaryDto>(user));
+    }
+
+    private static bool IsAccessBlocked(User user)
+    {
+        return user.IsBlocked && (user.BlockedUntil is null || user.BlockedUntil > DateTime.UtcNow);
     }
 
     private async Task<string> GenerateExternalUsernameAsync(ExternalUserInfo externalUser, CancellationToken cancellationToken)

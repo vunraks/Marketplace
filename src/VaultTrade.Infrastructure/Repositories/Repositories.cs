@@ -17,6 +17,7 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
             .Include(u => u.Listings)
+            .AsSplitQuery()
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -27,6 +28,7 @@ public class UserRepository : IUserRepository
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
             .Include(u => u.SellerRating)
             .Include(u => u.Listings)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
@@ -43,6 +45,7 @@ public class UserRepository : IUserRepository
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
             .Include(u => u.SellerRating)
             .Include(u => u.Listings)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
     }
 
@@ -82,6 +85,7 @@ public class CategoryRepository : ICategoryRepository
         var query = _context.Categories
             .Include(c => c.Children.Where(ch => includeInactive || ch.IsActive))
             .Include(c => c.Attributes)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (!includeInactive)
@@ -146,6 +150,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -187,6 +192,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Images.OrderBy(i => i.SortOrder))
             .Include(l => l.AttributeValues).ThenInclude(v => v.CategoryAttribute)
             .Include(l => l.ListingTags).ThenInclude(lt => lt.Tag)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
     }
 
@@ -197,6 +203,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Category)
             .Include(l => l.Seller).ThenInclude(s => s.SellerRating)
             .Include(l => l.Images)
+            .AsSplitQuery()
             .Where(l => l.SellerId == sellerId)
             .OrderByDescending(l => l.CreatedAt);
 

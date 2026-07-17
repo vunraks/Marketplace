@@ -27,6 +27,7 @@ public class WalletController : ControllerBase
     }
 
     [HttpPost("top-up")]
+    [Authorize(Policy = "RequireAdmin")]
     public async Task<IActionResult> TopUp([FromBody] TopUpWalletRequest request, CancellationToken cancellationToken)
     {
         if (request.Amount <= 0)
@@ -37,6 +38,26 @@ public class WalletController : ControllerBase
             ?? throw new NotFoundException("User not found");
 
         user.VirtualBalance += request.Amount;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Ok(new WalletDto(user.VirtualBalance, "VT"));
+    }
+
+    [HttpPost("withdraw")]
+    [Authorize(Policy = "RequireAdmin")]
+    public async Task<IActionResult> Withdraw([FromBody] TopUpWalletRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Amount <= 0)
+            throw new AppException("Amount must be positive");
+
+        var userId = User.GetUserId();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            ?? throw new NotFoundException("User not found");
+
+        if (user.VirtualBalance < request.Amount)
+            throw new AppException("Balance cannot be negative");
+
+        user.VirtualBalance -= request.Amount;
         await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new WalletDto(user.VirtualBalance, "VT"));

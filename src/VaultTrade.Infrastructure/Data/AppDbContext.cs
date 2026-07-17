@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<ProfilePost> ProfilePosts => Set<ProfilePost>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<Conversation> Conversations => Set<Conversation>();

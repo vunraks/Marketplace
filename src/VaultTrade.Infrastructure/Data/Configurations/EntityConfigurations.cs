@@ -19,6 +19,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.LastName).HasMaxLength(100);
         builder.Property(x => x.AvatarUrl).HasMaxLength(500);
         builder.Property(x => x.Phone).HasMaxLength(20);
+        builder.Property(x => x.BlockReason).HasMaxLength(500);
         builder.Property(x => x.VirtualBalance).HasPrecision(18, 2).HasDefaultValue(100000m);
 
         builder.HasMany(x => x.Listings)
@@ -202,6 +203,16 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
             .WithMany(x => x.Replies)
             .HasForeignKey(x => x.ParentId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class ProfilePostConfiguration : IEntityTypeConfiguration<ProfilePost>
+{
+    public void Configure(EntityTypeBuilder<ProfilePost> builder)
+    {
+        builder.ToTable("profile_posts");
+        builder.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+        builder.HasIndex(x => new { x.UserId, x.CreatedAt });
     }
 }
 

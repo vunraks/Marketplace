@@ -15,6 +15,8 @@ public class User : BaseEntity
     public bool IsEmailVerified { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsBlocked { get; set; }
+    public DateTime? BlockedUntil { get; set; }
+    public string? BlockReason { get; set; }
     public decimal VirtualBalance { get; set; } = 100000m;
     public DateTime? LastLoginAt { get; set; }
 
@@ -27,6 +29,7 @@ public class User : BaseEntity
     public ICollection<Review> ReviewsReceived { get; set; } = new List<Review>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Report> Reports { get; set; } = new List<Report>();
+    public ICollection<ProfilePost> ProfilePosts { get; set; } = new List<ProfilePost>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public SellerRating? SellerRating { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
