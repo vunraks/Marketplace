@@ -1,3 +1,5 @@
+import { googleClientId } from '../config/api'
+
 type GoogleCredentialResponse = {
   credential?: string
 }
@@ -53,7 +55,7 @@ const loadGoogleScript = () => new Promise<void>((resolve, reject) => {
 })
 
 export const getGoogleIdToken = async () => {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+  const clientId = googleClientId
   if (!clientId) {
     throw new Error('Google Client ID не настроен')
   }
