@@ -17,6 +17,9 @@ import NotFoundPage from '../pages/NotFoundPage'
 import ModerationPage from '../pages/ModerationPage'
 import ChatsPage from '../pages/ChatsPage'
 import AdminUsersPage from '../pages/AdminUsersPage'
+import FavoritesPage from '../pages/FavoritesPage'
+import SellerDashboardPage from '../pages/SellerDashboardPage'
+import DisputesPage from '../pages/DisputesPage'
 
 export default function AppRoutes() {
   return (
@@ -32,9 +35,12 @@ export default function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="become-seller" element={<BecomeSellerPage />} />
           <Route path="chats" element={<ChatsPage />} />
+          <Route path="favorites" element={<FavoritesPage />} />
+          <Route path="disputes" element={<DisputesPage />} />
         </Route>
 
         <Route element={<ProtectedRoute requireSeller />}>
+          <Route path="seller-dashboard" element={<SellerDashboardPage />} />
           <Route path="my-listings" element={<MyListingsPage />} />
           <Route path="my-listings/create" element={<CreateListingPage />} />
         </Route>

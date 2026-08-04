@@ -1,5 +1,15 @@
 import { axiosClient } from './axiosClient'
-import type { Conversation, NotificationsResult, Order, SellerReview, Wallet } from '../types'
+import type {
+  Conversation,
+  Dispute,
+  FavoriteState,
+  ListingCard,
+  NotificationsResult,
+  Order,
+  SellerDashboard,
+  SellerReview,
+  Wallet,
+} from '../types'
 
 export const commerceApi = {
   getWallet: () => axiosClient.get<Wallet>('/wallet'),
@@ -19,4 +29,15 @@ export const commerceApi = {
     axiosClient.post(`/reviews/orders/${orderId}`, { rating, comment }),
   getNotifications: () => axiosClient.get<NotificationsResult>('/notifications'),
   markNotificationsRead: () => axiosClient.post('/notifications/mark-read'),
+  getFavorites: () => axiosClient.get<ListingCard[]>('/favorites'),
+  getFavoriteState: (listingId: string) => axiosClient.get<FavoriteState>(`/favorites/${listingId}`),
+  addFavorite: (listingId: string) => axiosClient.post(`/favorites/${listingId}`),
+  removeFavorite: (listingId: string) => axiosClient.delete(`/favorites/${listingId}`),
+  getSellerDashboard: () => axiosClient.get<SellerDashboard>('/seller/dashboard'),
+  getMyDisputes: () => axiosClient.get<Dispute[]>('/disputes/mine'),
+  getAdminDisputes: () => axiosClient.get<Dispute[]>('/disputes/admin'),
+  createDispute: (orderId: string, reason: string, description?: string) =>
+    axiosClient.post<Dispute>('/disputes', { orderId, reason, description }),
+  resolveDispute: (id: string, resolution: 'refund' | 'complete' | 'reject', note?: string) =>
+    axiosClient.put<Dispute>(`/disputes/${id}/resolve`, { resolution, note }),
 }

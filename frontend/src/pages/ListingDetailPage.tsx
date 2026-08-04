@@ -19,6 +19,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SendIcon from '@mui/icons-material/Send'
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout'
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import { listingsApi } from '../api/listingsApi'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -34,8 +37,10 @@ export default function ListingDetailPage() {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [reviews, setReviews] = useState<SellerReview[]>([])
+  const [isFavorite, setIsFavorite] = useState(false)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
+  const [disputeReason, setDisputeReason] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [buyerNote, setBuyerNote] = useState('')
   const [message, setMessage] = useState('')
@@ -63,6 +68,7 @@ export default function ListingDetailPage() {
     Promise.allSettled([
       commerceApi.getWallet().then((r) => setWallet(r.data)),
       commerceApi.getConversationForListing(id).then((r) => setConversation(r.data)),
+      commerceApi.getFavoriteState(id).then((r) => setIsFavorite(r.data.isFavorite)),
     ])
   }, [id, isAuthenticated])
 
@@ -87,6 +93,30 @@ export default function ListingDetailPage() {
       setListing({ ...listing, stockQuantity: Math.max(listing.stockQuantity - quantity, 0) })
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось оформить заказ'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!listing) return
+    if (!isAuthenticated) {
+      setError('Войдите в аккаунт, чтобы добавлять товары в избранное')
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    try {
+      if (isFavorite) {
+        await commerceApi.removeFavorite(listing.id)
+        setIsFavorite(false)
+      } else {
+        await commerceApi.addFavorite(listing.id)
+        setIsFavorite(true)
+      }
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось обновить избранное'))
     } finally {
       setBusy(false)
     }
@@ -127,6 +157,30 @@ export default function ListingDetailPage() {
     }
   }
 
+  const openDispute = async () => {
+    if (!currentOrder) return
+
+    const reason = disputeReason.trim()
+    if (!reason) {
+      setError('Укажите причину спора')
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const { data } = await commerceApi.createDispute(currentOrder.id, reason)
+      setCurrentOrder({ ...currentOrder, status: data.orderStatus })
+      setDisputeReason('')
+      setNotice('Спор открыт. Продавец получит уведомление, а модератор сможет принять решение.')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось открыть спор'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sendMessage = async () => {
     if (!listing || !message.trim()) return
     if (!isAuthenticated) {
@@ -159,7 +213,19 @@ export default function ListingDetailPage() {
         </Button>
 
         <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: 2 }}>
-          <Typography variant="h3" sx={{ mb: 2 }}>Оформление заказа</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
+            <Typography variant="h3">Оформление заказа</Typography>
+            <Button
+              variant={isFavorite ? 'contained' : 'outlined'}
+              color={isFavorite ? 'primary' : 'inherit'}
+              startIcon={isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              onClick={toggleFavorite}
+              disabled={busy}
+              sx={{ flexShrink: 0 }}
+            >
+              {isFavorite ? 'В избранном' : 'В избранное'}
+            </Button>
+          </Box>
 
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 6, sm: 3 }}>
@@ -232,9 +298,32 @@ export default function ListingDetailPage() {
               </Button>
             )}
             {currentOrder && currentOrder.status !== 'Completed' && (
-              <Button variant="contained" size="large" disabled={busy} onClick={confirmOrder}>
-                Я проверил товар, подтвердить и списать баланс
-              </Button>
+              <Stack spacing={1.25}>
+                <Button variant="contained" size="large" disabled={busy || currentOrder.status === 'Disputed'} onClick={confirmOrder}>
+                  Я проверил товар, подтвердить и списать баланс
+                </Button>
+                <Paper sx={{ p: 2, borderRadius: 2 }}>
+                  <Typography fontWeight={800} sx={{ mb: 1 }}>Проблема с заказом?</Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <TextField
+                      fullWidth
+                      label="Причина спора"
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      disabled={currentOrder.status === 'Disputed'}
+                    />
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      startIcon={<GavelOutlinedIcon />}
+                      disabled={busy || currentOrder.status === 'Disputed'}
+                      onClick={openDispute}
+                    >
+                      Открыть спор
+                    </Button>
+                  </Stack>
+                </Paper>
+              </Stack>
             )}
             {currentOrder?.status === 'Completed' && (
               <Paper sx={{ p: 2, borderRadius: 2 }}>

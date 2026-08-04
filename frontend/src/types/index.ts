@@ -189,3 +189,64 @@ export interface ProfilePost {
   content: string
   createdAt: string
 }
+
+export interface FavoriteState {
+  isFavorite: boolean
+}
+
+export interface SellerDashboardStats {
+  totalListings: number
+  activeListings: number
+  pendingListings: number
+  totalViews: number
+  totalOrders: number
+  openOrders: number
+  disputedOrders: number
+  completedOrders: number
+  revenueTotal: number
+  revenueWeek: number
+}
+
+export interface SellerDashboardOrder {
+  id: string
+  orderNumber: string
+  listingTitle: string
+  buyerUsername: string
+  quantity: number
+  amount: number
+  currency: string
+  status: string
+  createdAt: string
+}
+
+export interface SellerDashboardListing {
+  id: string
+  title: string
+  status: string
+  stockQuantity: number
+  viewCount: number
+  createdAt: string
+}
+
+export interface SellerDashboard {
+  stats: SellerDashboardStats
+  recentOrders: SellerDashboardOrder[]
+  attentionListings: SellerDashboardListing[]
+}
+
+export interface Dispute {
+  id: string
+  orderId: string
+  orderNumber: string
+  listingTitle: string
+  reporterUsername: string
+  buyerUsername: string
+  sellerUsername: string
+  reason: string
+  description?: string
+  status: string
+  orderStatus: string
+  resolutionNote?: string
+  createdAt: string
+  resolvedAt?: string
+}

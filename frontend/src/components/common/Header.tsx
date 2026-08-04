@@ -21,6 +21,9 @@ import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { logout } from '../../store/authSlice'
@@ -74,6 +77,11 @@ export default function Header() {
           {isAuthenticated ? (
             <>
               {isSeller && (
+                <Button component={RouterLink} to="/seller-dashboard" color="inherit" startIcon={<DashboardOutlinedIcon />} sx={{ display: { xs: 'none', lg: 'inline-flex' } }}>
+                  Кабинет
+                </Button>
+              )}
+              {isSeller && (
                 <Button component={RouterLink} to="/my-listings" color="inherit" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                   Мои товары
                 </Button>
@@ -96,6 +104,12 @@ export default function Header() {
               <Button component={RouterLink} to="/chats" color="inherit" startIcon={<ChatBubbleOutlineIcon />} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
                 Чаты
               </Button>
+              <Button component={RouterLink} to="/favorites" color="inherit" startIcon={<FavoriteBorderIcon />} sx={{ display: { xs: 'none', lg: 'inline-flex' } }}>
+                Избранное
+              </Button>
+              <Button component={RouterLink} to="/disputes" color="inherit" startIcon={<GavelOutlinedIcon />} sx={{ display: { xs: 'none', lg: 'inline-flex' } }}>
+                Споры
+              </Button>
               {user?.virtualBalance != null && (
                 <Chip label={`${user.virtualBalance.toLocaleString('ru-RU')} VT`} color="primary" variant="outlined" sx={{ display: { xs: 'none', lg: 'inline-flex' } }} />
               )}
@@ -108,6 +122,11 @@ export default function Header() {
               <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
                 <MenuItem component={RouterLink} to="/profile" onClick={() => setAnchor(null)}>Профиль</MenuItem>
                 <MenuItem component={RouterLink} to="/chats" onClick={() => setAnchor(null)}>Чаты {unreadCount > 0 ? `(${unreadCount})` : ''}</MenuItem>
+                <MenuItem component={RouterLink} to="/favorites" onClick={() => setAnchor(null)}>Избранное</MenuItem>
+                <MenuItem component={RouterLink} to="/disputes" onClick={() => setAnchor(null)}>Споры</MenuItem>
+                {isSeller && (
+                  <MenuItem component={RouterLink} to="/seller-dashboard" onClick={() => setAnchor(null)}>Кабинет продавца</MenuItem>
+                )}
                 {isSeller && (
                   <MenuItem component={RouterLink} to="/my-listings/create" onClick={() => setAnchor(null)}>Создать объявление</MenuItem>
                 )}
