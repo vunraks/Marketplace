@@ -19,7 +19,9 @@ import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
+import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import { commerceApi } from '../api/commerceApi'
+import { promoCodesApi } from '../api/promoCodesApi'
 import { usersApi } from '../api/usersApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchProfile } from '../store/authSlice'
@@ -39,7 +41,9 @@ export default function ProfilePage() {
   const { profile, user } = useAppSelector((s) => s.auth)
   const [posts, setPosts] = useState<ProfilePost[]>([])
   const [postText, setPostText] = useState('')
+  const [promoCode, setPromoCode] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -98,12 +102,35 @@ export default function ProfilePage() {
 
     setBusy(true)
     setError('')
+    setNotice('')
     try {
       if (direction === 'topup') await commerceApi.topUpWallet(amount)
       else await commerceApi.withdrawWallet(amount)
       await dispatch(fetchProfile())
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось изменить баланс'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const redeemPromo = async () => {
+    const code = promoCode.trim()
+    if (!code) {
+      setError('Введите промокод.')
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const { data } = await promoCodesApi.redeem(code)
+      setPromoCode('')
+      setNotice(`Промокод ${data.code} активирован: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
+      await dispatch(fetchProfile())
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось активировать промокод'))
     } finally {
       setBusy(false)
     }
@@ -132,6 +159,7 @@ export default function ProfilePage() {
         Форум / Пользователи / <Box component="span" sx={{ color: 'primary.main' }}>{profile.username}</Box>
       </Typography>
 
+      {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '230px 1fr' }, gap: 2 }}>
@@ -158,6 +186,30 @@ export default function ProfilePage() {
                 Изменять виртуальную валюту может только администратор.
               </Typography>
             )}
+          </Paper>
+
+          <Paper sx={{ p: 2, borderRadius: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <LocalOfferOutlinedIcon color="primary" fontSize="small" />
+              <Typography fontWeight={800}>Промокод</Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Введите код, чтобы получить бонус на баланс.
+            </Typography>
+            <Stack spacing={1} sx={{ mt: 1.5 }}>
+              <TextField
+                size="small"
+                placeholder="WELCOME1000"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void redeemPromo()
+                }}
+              />
+              <Button variant="contained" disabled={busy || !promoCode.trim()} onClick={redeemPromo}>
+                Активировать
+              </Button>
+            </Stack>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>

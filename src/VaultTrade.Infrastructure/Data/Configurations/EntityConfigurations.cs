@@ -236,6 +236,46 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
     }
 }
 
+public class PromoCodeConfiguration : IEntityTypeConfiguration<PromoCode>
+{
+    public void Configure(EntityTypeBuilder<PromoCode> builder)
+    {
+        builder.ToTable("promo_codes");
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.IsActive);
+        builder.Property(x => x.Code).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(500);
+        builder.Property(x => x.BonusAmount).HasPrecision(18, 2);
+
+        builder.HasOne(x => x.CreatedBy)
+            .WithMany()
+            .HasForeignKey(x => x.CreatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PromoCodeRedemptionConfiguration : IEntityTypeConfiguration<PromoCodeRedemption>
+{
+    public void Configure(EntityTypeBuilder<PromoCodeRedemption> builder)
+    {
+        builder.ToTable("promo_code_redemptions");
+        builder.HasKey(x => new { x.PromoCodeId, x.UserId });
+        builder.Property(x => x.BonusAmount).HasPrecision(18, 2);
+        builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => x.RedeemedAt);
+
+        builder.HasOne(x => x.PromoCode)
+            .WithMany(x => x.Redemptions)
+            .HasForeignKey(x => x.PromoCodeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
     public void Configure(EntityTypeBuilder<AuditLog> builder)

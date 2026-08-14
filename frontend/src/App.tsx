@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import AppRoutes from './routes/AppRoutes'
+import { RealtimeBridge } from './realtime/RealtimeBridge'
 import { fetchProfile } from './store/authSlice'
 import { useAppDispatch, useAppSelector } from './store/hooks'
 
@@ -16,5 +17,10 @@ export default function App() {
     }
   }, [dispatch, isAuthenticated, isAuthPage])
 
-  return <AppRoutes />
+  return (
+    <>
+      <RealtimeBridge />
+      <AppRoutes />
+    </>
+  )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Box,
@@ -15,6 +15,7 @@ import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Dispute } from '../types'
+import { onModerationQueueChanged, onNotificationReceived } from '../realtime/notificationHub'
 import { formatDate, getErrorMessage } from '../utils/format'
 import { useAppSelector } from '../store/hooks'
 
@@ -33,8 +34,8 @@ export default function DisputesPage() {
 
   const isModerator = user?.roles.some((role) => role === 'Moderator' || role === 'Admin')
 
-  const load = async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     setError('')
     try {
       const mineResponse = await commerceApi.getMyDisputes()
@@ -47,13 +48,31 @@ export default function DisputesPage() {
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось загрузить споры'))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }
+  }, [isModerator])
 
   useEffect(() => {
-    load()
-  }, [isModerator])
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    const refresh = () => {
+      void load(true)
+    }
+
+    const offModeration = onModerationQueueChanged(refresh)
+    const offNotification = onNotificationReceived((notification) => {
+      if (notification.type === 'dispute_opened' || notification.type.startsWith('dispute_')) {
+        refresh()
+      }
+    })
+
+    return () => {
+      offModeration()
+      offNotification()
+    }
+  }, [load])
 
   const resolve = async (dispute: Dispute) => {
     const resolution = resolutionById[dispute.id] ?? 'refund'

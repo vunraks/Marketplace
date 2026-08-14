@@ -1,5 +1,6 @@
 using VaultTrade.API.Hubs;
 using VaultTrade.API.Middlewares;
+using VaultTrade.API.Services;
 using VaultTrade.Application;
 using VaultTrade.Infrastructure;
 using VaultTrade.Infrastructure.Configurations;
@@ -14,6 +15,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
 builder.Services.AddSignalR();
+builder.Services.AddScoped<RealtimeNotifier>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

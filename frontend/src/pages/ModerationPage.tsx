@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
@@ -15,6 +15,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { listingsApi } from '../api/listingsApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { ListingCard } from '../types'
+import { onModerationQueueChanged } from '../realtime/notificationHub'
 import { formatPrice } from '../utils/format'
 
 export default function ModerationPage() {
@@ -23,19 +24,25 @@ export default function ModerationPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const loadPending = () => {
-    setLoading(true)
+  const loadPending = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     setError('')
     listingsApi
       .getList({ pageSize: 100, status: 'PendingModeration' })
       .then((r) => setListings(r.data.items))
       .catch(() => setError('Не удалось загрузить объявления на модерации'))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => {
+        if (!silent) setLoading(false)
+      })
+  }, [])
 
   useEffect(() => {
     loadPending()
-  }, [])
+  }, [loadPending])
+
+  useEffect(() => {
+    return onModerationQueueChanged(() => loadPending(true))
+  }, [loadPending])
 
   const updateStatus = async (id: string, status: 'Active' | 'Rejected') => {
     setProcessingId(id)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Application.Common;
 using VaultTrade.Application.Helpers;
 using VaultTrade.Domain.Entities;
@@ -16,8 +17,13 @@ namespace VaultTrade.API.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public OrdersController(AppDbContext context) => _context = context;
+    public OrdersController(AppDbContext context, RealtimeNotifier realtime)
+    {
+        _context = context;
+        _realtime = realtime;
+    }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
@@ -68,16 +74,19 @@ public class OrdersController : ControllerBase
         var conversation = await GetOrCreateConversationAsync(listing.Id, null, buyerId, listing.SellerId, cancellationToken);
         conversation.Order = order;
 
-        _context.Orders.Add(order);
-        _context.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = listing.SellerId,
             Type = "order_created",
             Title = "Новый заказ",
             Body = $"Покупатель создал заказ {order.OrderNumber}.",
             DataJson = $$"""{"orderId":"{{order.Id}}","listingId":"{{listing.Id}}"}"""
-        });
+        };
+
+        _context.Orders.Add(order);
+        _context.Notifications.Add(notification);
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationAsync(notification, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, ToDto(order));
     }
@@ -150,17 +159,20 @@ public class OrdersController : ControllerBase
             Comment = "Buyer confirmed delivery"
         });
 
-        _context.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = order.SellerId,
             Type = "order_completed",
             Title = "Покупатель подтвердил заказ",
-            Body = $"Заказ {order.OrderNumber} завершён, средства зачислены.",
+            Body = $"Заказ {order.OrderNumber} завершен, средства зачислены.",
             DataJson = $$"""{"orderId":"{{order.Id}}","listingId":"{{order.ListingId}}"}"""
-        });
+        };
+
+        _context.Notifications.Add(notification);
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        await _realtime.SendNotificationAsync(notification, cancellationToken);
 
         var completedOrder = await _context.Orders
             .AsNoTracking()

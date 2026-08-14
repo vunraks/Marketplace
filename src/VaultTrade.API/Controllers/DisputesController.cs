@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Application.Common;
 using VaultTrade.Domain.Constants;
 using VaultTrade.Domain.Entities;
@@ -16,8 +17,13 @@ namespace VaultTrade.API.Controllers;
 public class DisputesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public DisputesController(AppDbContext context) => _context = context;
+    public DisputesController(AppDbContext context, RealtimeNotifier realtime)
+    {
+        _context = context;
+        _realtime = realtime;
+    }
 
     [HttpGet("mine")]
     [ProducesResponseType(typeof(IReadOnlyList<DisputeDto>), StatusCodes.Status200OK)]
@@ -114,16 +120,20 @@ public class DisputesController : ControllerBase
         });
 
         var recipientId = order.BuyerId == userId ? order.SellerId : order.BuyerId;
-        _context.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = recipientId,
             Type = "dispute_opened",
             Title = "Открыт спор по заказу",
             Body = $"По заказу {order.OrderNumber} открыт спор: {reason}.",
             DataJson = $$"""{"orderId":"{{order.Id}}","disputeId":"{{report.Id}}"}"""
-        });
+        };
+        _context.Notifications.Add(notification);
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationAsync(notification, cancellationToken);
+        await _realtime.SendModerationQueueChangedAsync(cancellationToken);
+
         return CreatedAtAction(nameof(GetMine), new { id = report.Id }, ToDto(report, order));
     }
 
@@ -199,19 +209,24 @@ public class DisputesController : ControllerBase
             Comment = $"Dispute resolution: {resolution}. {report.ResolutionNote}".Trim()
         });
 
-        foreach (var recipientId in new[] { order.BuyerId, order.SellerId }.Distinct())
-        {
-            _context.Notifications.Add(new Notification
+        var notifications = new[] { order.BuyerId, order.SellerId }
+            .Distinct()
+            .Select(recipientId => new Notification
             {
                 UserId = recipientId,
                 Type = "dispute_resolved",
                 Title = "Спор по заказу закрыт",
                 Body = $"Спор по заказу {order.OrderNumber} закрыт: {resolution}.",
                 DataJson = $$"""{"orderId":"{{order.Id}}","disputeId":"{{report.Id}}"}"""
-            });
-        }
+            })
+            .ToList();
+
+        _context.Notifications.AddRange(notifications);
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationsAsync(notifications, cancellationToken);
+        await _realtime.SendModerationQueueChangedAsync(cancellationToken);
+
         return Ok(ToDto(report, order));
     }
 

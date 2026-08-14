@@ -5,8 +5,17 @@ import { Link as RouterLink } from 'react-router-dom'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation } from '../types'
+import { onConversationUpdated } from '../realtime/notificationHub'
 import { useAppSelector } from '../store/hooks'
 import { formatDate, getErrorMessage } from '../utils/format'
+
+function upsertConversation(items: Conversation[], next: Conversation) {
+  const index = items.findIndex((item) => item.id === next.id)
+  if (index === -1) return [next, ...items]
+  const copy = [...items]
+  copy[index] = next
+  return [next, ...copy.filter((_, i) => i !== index)]
+}
 
 export default function ChatsPage() {
   const user = useAppSelector((s) => s.auth.user)
@@ -21,7 +30,10 @@ export default function ChatsPage() {
     commerceApi.getConversations()
       .then((r) => {
         setConversations(r.data)
-        setActive((current) => current ?? r.data[0] ?? null)
+        setActive((current) => {
+          if (!current) return r.data[0] ?? null
+          return r.data.find((item) => item.id === current.id) ?? current
+        })
       })
       .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить чаты')))
       .finally(() => setLoading(false))
@@ -32,12 +44,19 @@ export default function ChatsPage() {
     commerceApi.markNotificationsRead().catch(() => undefined)
   }, [])
 
+  useEffect(() => {
+    return onConversationUpdated((conversation) => {
+      setConversations((items) => upsertConversation(items, conversation))
+      setActive((current) => (current?.id === conversation.id ? conversation : current))
+    })
+  }, [])
+
   const send = async () => {
     if (!active?.listingId || !message.trim()) return
     try {
       const { data } = await commerceApi.sendListingMessage(active.listingId, message)
       setActive(data)
-      setConversations((items) => items.map((item) => item.id === data.id ? data : item))
+      setConversations((items) => upsertConversation(items, data))
       setMessage('')
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось отправить сообщение'))

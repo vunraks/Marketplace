@@ -250,3 +250,29 @@ export interface Dispute {
   createdAt: string
   resolvedAt?: string
 }
+
+export interface PromoCode {
+  id: string
+  code: string
+  description?: string
+  bonusAmount: number
+  maxRedemptions?: number | null
+  redeemedCount: number
+  isActive: boolean
+  expiresAt?: string | null
+  createdAt: string
+}
+
+export interface CreatePromoCodePayload {
+  code: string
+  bonusAmount: number
+  maxRedemptions?: number | null
+  expiresAt?: string | null
+  description?: string
+}
+
+export interface RedeemPromoCodeResult {
+  code: string
+  bonusAmount: number
+  balance: number
+}

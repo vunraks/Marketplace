@@ -7,6 +7,8 @@ export const apiBaseUrl =
 
 export const apiOrigin = apiBaseUrl.replace(/\/api\/v1\/?$/, '')
 
+export const notificationsHubUrl = `${apiOrigin || ''}/hubs/notifications`
+
 export const googleClientId =
   (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ??
   defaultGoogleClientId

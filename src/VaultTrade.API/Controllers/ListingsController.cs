@@ -2,9 +2,12 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Application.Common;
 using VaultTrade.Application.DTOs.Listings;
 using VaultTrade.Application.Interfaces;
+using VaultTrade.Domain.Entities;
+using VaultTrade.Infrastructure.Data;
 
 namespace VaultTrade.API.Controllers;
 
@@ -14,11 +17,15 @@ public class ListingsController : ControllerBase
 {
     private readonly IListingService _listingService;
     private readonly IFileStorageService _fileStorage;
+    private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public ListingsController(IListingService listingService, IFileStorageService fileStorage)
+    public ListingsController(IListingService listingService, IFileStorageService fileStorage, AppDbContext context, RealtimeNotifier realtime)
     {
         _listingService = listingService;
         _fileStorage = fileStorage;
+        _context = context;
+        _realtime = realtime;
     }
 
     [HttpGet]
@@ -64,6 +71,7 @@ public class ListingsController : ControllerBase
     {
         await ValidateAsync(request, cancellationToken);
         var listing = await _listingService.CreateAsync(User.GetUserId(), request, cancellationToken);
+        await _realtime.SendModerationQueueChangedAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, listing);
     }
 
@@ -74,6 +82,7 @@ public class ListingsController : ControllerBase
     {
         await ValidateAsync(request, cancellationToken);
         var listing = await _listingService.UpdateAsync(User.GetUserId(), id, request, cancellationToken);
+        await _realtime.SendModerationQueueChangedAsync(cancellationToken);
         return Ok(listing);
     }
 
@@ -92,6 +101,18 @@ public class ListingsController : ControllerBase
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateListingStatusRequest request, CancellationToken cancellationToken)
     {
         var listing = await _listingService.UpdateStatusAsync(User.GetUserId(), id, request.Status, cancellationToken);
+        var notification = new Notification
+        {
+            UserId = listing.SellerId,
+            Type = "listing_moderation",
+            Title = listing.Status == "Active" ? "Объявление одобрено" : "Статус объявления изменен",
+            Body = $"Объявление \"{listing.Title}\" теперь имеет статус {listing.Status}.",
+            DataJson = $$"""{"listingId":"{{listing.Id}}","status":"{{listing.Status}}"}"""
+        };
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationAsync(notification, cancellationToken);
+        await _realtime.SendModerationQueueChangedAsync(cancellationToken);
         return Ok(listing);
     }
 

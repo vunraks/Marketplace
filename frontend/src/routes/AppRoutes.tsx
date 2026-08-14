@@ -17,6 +17,7 @@ import NotFoundPage from '../pages/NotFoundPage'
 import ModerationPage from '../pages/ModerationPage'
 import ChatsPage from '../pages/ChatsPage'
 import AdminUsersPage from '../pages/AdminUsersPage'
+import AdminPromoCodesPage from '../pages/AdminPromoCodesPage'
 import FavoritesPage from '../pages/FavoritesPage'
 import SellerDashboardPage from '../pages/SellerDashboardPage'
 import DisputesPage from '../pages/DisputesPage'
@@ -51,6 +52,7 @@ export default function AppRoutes() {
 
         <Route element={<ProtectedRoute requireAdmin />}>
           <Route path="admin/users" element={<AdminUsersPage />} />
+          <Route path="admin/promocodes" element={<AdminPromoCodesPage />} />
         </Route>
       </Route>
 

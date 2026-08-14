@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Infrastructure.Data;
 
 namespace VaultTrade.API.Controllers;
@@ -12,8 +13,13 @@ namespace VaultTrade.API.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public NotificationsController(AppDbContext context) => _context = context;
+    public NotificationsController(AppDbContext context, RealtimeNotifier realtime)
+    {
+        _context = context;
+        _realtime = realtime;
+    }
 
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
@@ -42,6 +48,7 @@ public class NotificationsController : ControllerBase
             notification.IsRead = true;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationReadStateAsync(userId, cancellationToken);
         return NoContent();
     }
 }

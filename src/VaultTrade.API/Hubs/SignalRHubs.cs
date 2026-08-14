@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
+using VaultTrade.Domain.Constants;
 
 namespace VaultTrade.API.Hubs;
 
@@ -33,7 +35,10 @@ public class NotificationHub : Hub
         if (Context.User?.Identity?.IsAuthenticated == true)
         {
             var userId = Context.User.GetUserId();
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"user-{userId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeNotifier.UserGroup(userId));
+
+            if (Context.User.IsInRole(RoleNames.Admin) || Context.User.IsInRole(RoleNames.Moderator))
+                await Groups.AddToGroupAsync(Context.ConnectionId, "moderators");
         }
 
         await base.OnConnectedAsync();

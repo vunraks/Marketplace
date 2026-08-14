@@ -21,38 +21,24 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { logout } from '../../store/authSlice'
-import { commerceApi } from '../../api/commerceApi'
+import { useUnreadNotifications } from '../../realtime/useUnreadNotifications'
 
 export default function Header() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { isAuthenticated, user } = useAppSelector((s) => s.auth)
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const unreadCount = useUnreadNotifications()
 
   const isSeller = user?.roles.some((role) => ['Seller', 'Moderator', 'Admin'].includes(role))
   const isModerator = user?.roles.some((role) => ['Moderator', 'Admin'].includes(role))
   const isAdmin = user?.roles.includes('Admin')
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setUnreadCount(0)
-      return
-    }
-
-    const load = () => commerceApi.getNotifications()
-      .then((response) => setUnreadCount(response.data.unreadCount))
-      .catch(() => undefined)
-
-    load()
-    const timer = window.setInterval(load, 10000)
-    return () => window.clearInterval(timer)
-  }, [isAuthenticated])
 
   const closeMenu = () => setAnchor(null)
 
@@ -129,6 +115,11 @@ export default function Header() {
                 {isAdmin && (
                   <MenuItem component={RouterLink} to="/admin/users" onClick={closeMenu}>
                     <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 1 }} /> Пользователи
+                  </MenuItem>
+                )}
+                {isAdmin && (
+                  <MenuItem component={RouterLink} to="/admin/promocodes" onClick={closeMenu}>
+                    <LocalOfferOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Промокоды
                   </MenuItem>
                 )}
                 <MenuItem onClick={signOut}>

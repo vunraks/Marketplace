@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Application.Common;
 using VaultTrade.Domain.Entities;
 using VaultTrade.Domain.Enums;
@@ -15,8 +16,13 @@ namespace VaultTrade.API.Controllers;
 public class ConversationsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public ConversationsController(AppDbContext context) => _context = context;
+    public ConversationsController(AppDbContext context, RealtimeNotifier realtime)
+    {
+        _context = context;
+        _realtime = realtime;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetMy(CancellationToken cancellationToken)
@@ -59,12 +65,13 @@ public class ConversationsController : ControllerBase
             ?? throw new NotFoundException("Listing not found");
 
         var conversationId = await GetOrCreateConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        var content = request.Content.Trim();
 
         _context.Messages.Add(new Message
         {
             ConversationId = conversationId,
             SenderId = userId,
-            Content = request.Content.Trim(),
+            Content = content,
             MessageType = MessageType.Text
         });
 
@@ -73,22 +80,24 @@ public class ConversationsController : ControllerBase
             .Select(p => p.UserId)
             .ToListAsync(cancellationToken);
 
-        foreach (var recipientId in recipientIds)
+        var notifications = recipientIds.Select(recipientId => new Notification
         {
-            _context.Notifications.Add(new Notification
-            {
-                UserId = recipientId,
-                Type = "message",
-                Title = "Новое сообщение",
-                Body = request.Content.Trim(),
-                DataJson = $$"""{"conversationId":"{{conversationId}}","listingId":"{{listingId}}"}"""
-            });
-        }
+            UserId = recipientId,
+            Type = "message",
+            Title = "Новое сообщение",
+            Body = content,
+            DataJson = $$"""{"conversationId":"{{conversationId}}","listingId":"{{listingId}}"}"""
+        }).ToList();
 
+        _context.Notifications.AddRange(notifications);
         await _context.SaveChangesAsync(cancellationToken);
 
         var conversation = await LoadConversationAsync(conversationId, cancellationToken);
-        return Ok(ToDto(conversation));
+        var dto = ToDto(conversation);
+        await _realtime.SendConversationUpdatedAsync(conversation.Participants.Select(p => p.UserId), dto, cancellationToken);
+        await _realtime.SendNotificationsAsync(notifications, cancellationToken);
+
+        return Ok(dto);
     }
 
     private async Task<Guid> GetOrCreateConversationIdAsync(Guid listingId, Guid userId, Guid sellerId, CancellationToken cancellationToken)
