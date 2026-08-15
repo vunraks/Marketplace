@@ -44,6 +44,7 @@ export default function AppRoutes() {
           <Route path="seller-dashboard" element={<SellerDashboardPage />} />
           <Route path="my-listings" element={<MyListingsPage />} />
           <Route path="my-listings/create" element={<CreateListingPage />} />
+          <Route path="my-listings/:id/edit" element={<CreateListingPage />} />
         </Route>
 
         <Route element={<ProtectedRoute requireModerator />}>
