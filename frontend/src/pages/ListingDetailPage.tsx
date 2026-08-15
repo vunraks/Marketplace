@@ -260,9 +260,22 @@ export default function ListingDetailPage() {
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <Typography variant="caption" color="text.secondary">Продавец</Typography>
-              <Typography component={RouterLink} to={`/seller/${listing.sellerUsername}`} color="primary.main" fontWeight={700}>
-                {listing.sellerUsername}
-              </Typography>
+              <Button
+                component={RouterLink}
+                to={`/seller/${encodeURIComponent(listing.sellerUsername)}`}
+                variant="text"
+                size="small"
+                sx={{
+                  justifyContent: 'flex-start',
+                  minWidth: 0,
+                  px: 0,
+                  fontWeight: 800,
+                  textTransform: 'none',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                @{listing.sellerUsername}
+              </Button>
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <Typography variant="caption" color="text.secondary">Рейтинг</Typography>

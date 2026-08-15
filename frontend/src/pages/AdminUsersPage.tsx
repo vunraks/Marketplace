@@ -23,10 +23,12 @@ import { usersApi } from '../api/usersApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { AdminUser } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
+import { useAppSelector } from '../store/hooks'
 
 const managedRoles = ['User', 'Seller', 'Moderator']
 
 export default function AdminUsersPage() {
+  const currentUser = useAppSelector((s) => s.auth.user)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -34,6 +36,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
   const [balanceAmounts, setBalanceAmounts] = useState<Record<string, string>>({})
   const [blockUntilValues, setBlockUntilValues] = useState<Record<string, string>>({})
+  const isCurrentAdmin = currentUser?.roles.includes('Admin') ?? false
 
   const filteredUsers = useMemo(() => {
     const value = query.trim().toLowerCase()
@@ -50,6 +53,13 @@ export default function AdminUsersPage() {
   }
 
   const load = () => {
+    if (!isCurrentAdmin) {
+      setUsers([])
+      setError('У вас нет прав администратора для просмотра пользователей.')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setError('')
     usersApi.getAdminUsers()
@@ -60,7 +70,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [isCurrentAdmin])
 
   const toggleRole = async (user: AdminUser, role: 'Seller' | 'Moderator', enabled: boolean) => {
     setProcessingId(user.id)
@@ -123,6 +133,14 @@ export default function AdminUsersPage() {
   }
 
   if (loading) return <LoadingSpinner />
+
+  if (!isCurrentAdmin) {
+    return (
+      <Alert severity="warning">
+        У вас нет прав администратора для просмотра пользователей.
+      </Alert>
+    )
+  }
 
   return (
     <Box>
