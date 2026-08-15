@@ -158,7 +158,8 @@ public class ListingService : IListingService
     {
         await EnsureSellerAccessAsync(userId, cancellationToken);
         var listing = await GetOwnedListingAsync(userId, listingId, cancellationToken);
-        _unitOfWork.Listings.Remove(listing);
+        listing.Status = ListingStatus.Archived;
+        listing.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 

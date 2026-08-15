@@ -2,7 +2,7 @@ import { Card, CardActionArea, CardContent, CardMedia, Chip, Typography, Box, Ra
 import VerifiedIcon from '@mui/icons-material/Verified'
 import { Link as RouterLink } from 'react-router-dom'
 import type { ListingCard as ListingCardType } from '../../types'
-import { assetUrl, formatPrice } from '../../utils/format'
+import { assetUrl, formatPrice, imagePlaceholder } from '../../utils/format'
 import '../../styles/listing-card.scss'
 
 interface Props {
@@ -10,13 +10,22 @@ interface Props {
 }
 
 export default function ListingCard({ listing }: Props) {
-  const imageUrl = assetUrl(listing.primaryImageUrl) ?? 'https://placehold.co/400x240?text=VaultTrade'
+  const imageUrl = assetUrl(listing.primaryImageUrl) ?? imagePlaceholder
 
   return (
     <Card className="listing-card">
       <CardActionArea component={RouterLink} to={`/listing/${listing.id}`}>
         <Box className="listing-card__media">
-          <CardMedia component="img" height="148" image={imageUrl} alt={listing.title} sx={{ objectFit: 'cover' }} />
+          <CardMedia
+            component="img"
+            height="148"
+            image={imageUrl}
+            alt={listing.title}
+            onError={(event) => {
+              event.currentTarget.src = imagePlaceholder
+            }}
+            sx={{ objectFit: 'cover' }}
+          />
           {listing.isFeatured && <Chip className="listing-card__badge" label="TOP" size="small" color="primary" />}
         </Box>
         <CardContent>

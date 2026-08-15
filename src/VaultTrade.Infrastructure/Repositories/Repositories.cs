@@ -223,6 +223,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Images)
             .AsSplitQuery()
             .Where(l => l.SellerId == sellerId)
+            .Where(l => l.Status != ListingStatus.Archived)
             .OrderByDescending(l => l.CreatedAt);
 
         var total = await query.CountAsync(cancellationToken);

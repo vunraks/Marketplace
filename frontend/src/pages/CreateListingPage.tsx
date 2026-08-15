@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
 import type { CategoryTree, ListingImage } from '../types'
-import { assetUrl, getErrorMessage } from '../utils/format'
+import { assetUrl, getErrorMessage, imagePlaceholder } from '../utils/format'
 
 const schema = z.object({
   categoryId: z.string().min(1, 'Выберите категорию'),
@@ -158,7 +158,16 @@ export default function CreateListingPage() {
               {existingImages.length > 0 && (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {existingImages.map((image) => (
-                    <Box key={image.id} component="img" src={assetUrl(image.url)} alt={image.altText ?? 'Изображение'} sx={{ width: 112, height: 82, objectFit: 'cover', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <Box
+                      key={image.id}
+                      component="img"
+                      src={assetUrl(image.url) ?? imagePlaceholder}
+                      alt={image.altText ?? 'Изображение'}
+                      onError={(event) => {
+                        event.currentTarget.src = imagePlaceholder
+                      }}
+                      sx={{ width: 112, height: 82, objectFit: 'cover', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
                   ))}
                 </Box>
               )}

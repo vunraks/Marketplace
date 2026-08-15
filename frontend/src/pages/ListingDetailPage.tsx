@@ -33,7 +33,7 @@ import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation, ListingDetail, Order, SellerReview, Wallet } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
-import { assetUrl, formatDate, formatPrice, getErrorMessage } from '../utils/format'
+import { assetUrl, formatDate, formatPrice, getErrorMessage, imagePlaceholder } from '../utils/format'
 import { useAppSelector } from '../store/hooks'
 
 export default function ListingDetailPage() {
@@ -347,7 +347,15 @@ export default function ListingDetailPage() {
                       cursor: 'zoom-in',
                     }}
                   >
-                    <Box component="img" src={imageUrl} alt={`${listing.title} ${index + 1}`} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <Box
+                      component="img"
+                      src={imageUrl}
+                      alt={`${listing.title} ${index + 1}`}
+                      onError={(event) => {
+                        event.currentTarget.src = imagePlaceholder
+                      }}
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
                   </Box>
                 ))}
               </Box>
@@ -442,7 +450,15 @@ export default function ListingDetailPage() {
             </>
           )}
           {selectedImage && (
-            <Box component="img" src={selectedImage} alt={listing.title} sx={{ maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain', display: 'block' }} />
+            <Box
+              component="img"
+              src={selectedImage}
+              alt={listing.title}
+              onError={(event) => {
+                event.currentTarget.src = imagePlaceholder
+              }}
+              sx={{ maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain', display: 'block' }}
+            />
           )}
           {galleryImages.length > 1 && (
             <Typography sx={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', px: 1.5, py: 0.5, borderRadius: 999, bgcolor: 'rgba(0,0,0,0.55)' }}>

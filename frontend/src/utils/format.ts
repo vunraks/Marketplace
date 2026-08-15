@@ -1,5 +1,7 @@
 import { apiOrigin } from '../config/api'
 
+export const imagePlaceholder = 'https://placehold.co/600x400?text=VaultTrade'
+
 export const formatPrice = (price: number, currency = 'RUB') =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency, maximumFractionDigits: 0 }).format(price)
 
