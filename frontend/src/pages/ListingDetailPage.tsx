@@ -26,6 +26,7 @@ import { listingsApi } from '../api/listingsApi'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation, ListingDetail, Order, SellerReview, Wallet } from '../types'
+import { onConversationUpdated } from '../realtime/notificationHub'
 import { assetUrl, formatDate, formatPrice, getErrorMessage } from '../utils/format'
 import { useAppSelector } from '../store/hooks'
 
@@ -70,6 +71,14 @@ export default function ListingDetailPage() {
       commerceApi.getConversationForListing(id).then((r) => setConversation(r.data)),
       commerceApi.getFavoriteState(id).then((r) => setIsFavorite(r.data.isFavorite)),
     ])
+  }, [id, isAuthenticated])
+
+  useEffect(() => {
+    if (!id || !isAuthenticated) return
+
+    return onConversationUpdated((next) => {
+      if (next.listingId === id) setConversation(next)
+    })
   }, [id, isAuthenticated])
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])

@@ -157,6 +157,7 @@ export interface Conversation {
   id: string
   listingId?: string
   orderId?: string
+  listingTitle?: string
   participants: { userId: string; username: string }[]
   messages: Message[]
 }

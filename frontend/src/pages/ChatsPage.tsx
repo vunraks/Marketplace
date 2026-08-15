@@ -86,8 +86,13 @@ export default function ChatsPage() {
                     variant={active?.id === conversation.id ? 'contained' : 'outlined'}
                     sx={{ justifyContent: 'flex-start', textAlign: 'left', display: 'block' }}
                   >
-                    <Typography fontWeight={800}>{other?.username || 'Диалог'}</Typography>
-                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap>
+                    <Typography fontWeight={800} noWrap>
+                      {conversation.listingTitle || 'Товар'}
+                    </Typography>
+                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
+                      {other?.username || 'Диалог'}
+                    </Typography>
+                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
                       {last?.content || 'Нет сообщений'}
                     </Typography>
                   </Button>
@@ -101,7 +106,17 @@ export default function ChatsPage() {
           {active ? (
             <>
               <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <Button component={RouterLink} to={`/listing/${active.listingId}`} size="small">Открыть товар</Button>
+                <Typography fontWeight={800} sx={{ mb: 0.5 }}>
+                  {active.listingTitle || 'Товар'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {active.participants.find((p) => p.userId !== user?.id)?.username || 'Диалог'}
+                </Typography>
+                {active.listingId && (
+                  <Button component={RouterLink} to={`/listing/${active.listingId}`} size="small">
+                    Открыть товар
+                  </Button>
+                )}
               </Box>
               <Stack spacing={1.25} sx={{ flex: 1, p: 2, overflow: 'auto' }}>
                 {active.messages.map((item) => {

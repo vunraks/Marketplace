@@ -137,6 +137,7 @@ public class ConversationsController : ControllerBase
             .AsNoTracking()
             .Include(c => c.Participants).ThenInclude(p => p.User)
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
+            .Include(c => c.Listing)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
             ?? throw new NotFoundException("Conversation not found");
@@ -146,12 +147,19 @@ public class ConversationsController : ControllerBase
         conversation.Id,
         conversation.ListingId,
         conversation.OrderId,
+        conversation.Listing?.Title,
         conversation.Participants.Select(p => new ParticipantDto(p.UserId, p.User?.Username ?? string.Empty)).ToList(),
         conversation.Messages.Where(m => !m.IsDeleted).OrderBy(m => m.CreatedAt).Select(m =>
             new MessageDto(m.Id, m.SenderId, m.Sender?.Username ?? string.Empty, m.Content, m.CreatedAt)).ToList());
 }
 
 public record SendMessageRequest(string Content);
-public record ConversationDto(Guid Id, Guid? ListingId, Guid? OrderId, IReadOnlyList<ParticipantDto> Participants, IReadOnlyList<MessageDto> Messages);
+public record ConversationDto(
+    Guid Id,
+    Guid? ListingId,
+    Guid? OrderId,
+    string? ListingTitle,
+    IReadOnlyList<ParticipantDto> Participants,
+    IReadOnlyList<MessageDto> Messages);
 public record ParticipantDto(Guid UserId, string Username);
 public record MessageDto(Guid Id, Guid SenderId, string SenderUsername, string Content, DateTime CreatedAt);
