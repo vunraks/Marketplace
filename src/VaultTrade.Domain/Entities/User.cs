@@ -30,6 +30,7 @@ public class User : BaseEntity
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Report> Reports { get; set; } = new List<Report>();
     public ICollection<ProfilePost> ProfilePosts { get; set; } = new List<ProfilePost>();
+    public ICollection<ProfilePost> AuthoredProfilePosts { get; set; } = new List<ProfilePost>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public SellerRating? SellerRating { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

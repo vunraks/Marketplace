@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
   Avatar,
@@ -309,10 +310,19 @@ export default function ProfilePage() {
             ) : posts.map((post) => (
               <Paper key={post.id} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                  <Avatar sx={{ bgcolor: '#07100b', color: 'primary.main', border: '1px solid rgba(101,212,110,0.28)' }}>{initials}</Avatar>
+                  <Avatar sx={{ bgcolor: '#07100b', color: 'primary.main', border: '1px solid rgba(101,212,110,0.28)' }}>
+                    {(post.authorUsername || profile.username).slice(0, 1).toUpperCase()}
+                  </Avatar>
                   <Box sx={{ minWidth: 0 }}>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.25, sm: 1 }} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                      <Typography fontWeight={800}>{profile.username}</Typography>
+                      <Typography
+                        component={RouterLink}
+                        to={`/seller/${post.authorUsername || profile.username}`}
+                        fontWeight={800}
+                        sx={{ color: 'inherit', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                      >
+                        {post.authorUsername || profile.username}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">{formatDate(post.createdAt)}</Typography>
                     </Stack>
                     <Typography sx={{ mt: 0.75, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{post.content}</Typography>

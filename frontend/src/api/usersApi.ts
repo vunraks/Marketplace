@@ -15,6 +15,9 @@ export const usersApi = {
   getPublic: (username: string) => axiosClient.get<PublicUserProfile>(`/users/${username}`),
   getMyPosts: () => axiosClient.get<ProfilePost[]>('/profile-posts/me'),
   createMyPost: (content: string) => axiosClient.post<ProfilePost>('/profile-posts/me', { content }),
+  getUserPosts: (username: string) => axiosClient.get<ProfilePost[]>(`/profile-posts/users/${encodeURIComponent(username)}`),
+  createUserPost: (username: string, content: string) =>
+    axiosClient.post<ProfilePost>(`/profile-posts/users/${encodeURIComponent(username)}`, { content }),
   getAdminUsers: () => axiosClient.get<AdminUser[]>('/users/admin'),
   updateAdminUserRoles: (id: string, roles: string[]) =>
     axiosClient.put<AdminUser>(`/users/admin/${id}/roles`, { roles }),

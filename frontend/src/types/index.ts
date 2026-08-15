@@ -189,6 +189,8 @@ export interface ProfilePost {
   id: string
   content: string
   createdAt: string
+  authorId: string
+  authorUsername: string
 }
 
 export interface FavoriteState {

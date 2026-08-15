@@ -54,7 +54,7 @@ public record AdjustUserBalanceRequest(decimal Amount);
 
 public record UpdateUserBlockRequest(bool IsBlocked, DateTime? BlockedUntil, string? Reason);
 
-public record ProfilePostDto(Guid Id, string Content, DateTime CreatedAt);
+public record ProfilePostDto(Guid Id, string Content, DateTime CreatedAt, Guid AuthorId, string AuthorUsername);
 
 public record CreateProfilePostRequest(string Content);
 

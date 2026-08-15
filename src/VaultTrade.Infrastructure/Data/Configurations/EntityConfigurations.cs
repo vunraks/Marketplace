@@ -213,6 +213,17 @@ public class ProfilePostConfiguration : IEntityTypeConfiguration<ProfilePost>
         builder.ToTable("profile_posts");
         builder.Property(x => x.Content).HasMaxLength(2000).IsRequired();
         builder.HasIndex(x => new { x.UserId, x.CreatedAt });
+        builder.HasIndex(x => x.AuthorId);
+
+        builder.HasOne(x => x.User)
+            .WithMany(u => u.ProfilePosts)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Author)
+            .WithMany(u => u.AuthoredProfilePosts)
+            .HasForeignKey(x => x.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
