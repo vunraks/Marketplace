@@ -24,21 +24,37 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { logout } from '../../store/authSlice'
+import { fetchProfile, logout } from '../../store/authSlice'
+import { onNotificationReceived } from '../../realtime/notificationHub'
 import { useUnreadNotifications } from '../../realtime/useUnreadNotifications'
 
 export default function Header() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const { isAuthenticated, user } = useAppSelector((s) => s.auth)
+  const { isAuthenticated, user, profile } = useAppSelector((s) => s.auth)
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
   const unreadCount = useUnreadNotifications()
 
   const isSeller = user?.roles.some((role) => ['Seller', 'Moderator', 'Admin'].includes(role))
   const isModerator = user?.roles.some((role) => ['Moderator', 'Admin'].includes(role))
   const isAdmin = user?.roles.includes('Admin')
+  const balance = profile?.virtualBalance ?? user?.virtualBalance ?? 0
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    return onNotificationReceived((notification) => {
+      if (
+        notification.type === 'promo_bonus' ||
+        notification.type === 'order_completed' ||
+        notification.type === 'dispute_resolved'
+      ) {
+        void dispatch(fetchProfile())
+      }
+    })
+  }, [dispatch, isAuthenticated])
 
   const closeMenu = () => setAnchor(null)
 
@@ -79,10 +95,23 @@ export default function Header() {
           {isAuthenticated ? (
             <>
               <Chip
+                component={RouterLink}
+                to="/profile"
+                clickable
+                label={`${balance.toLocaleString('ru-RU')} VT`}
+                color="primary"
+                variant="outlined"
+                sx={{ fontWeight: 800, textDecoration: 'none' }}
+              />
+              <Chip
+                component={RouterLink}
+                to="/chats"
+                clickable
                 icon={<NotificationsNoneIcon />}
                 label={unreadCount}
                 color={unreadCount > 0 ? 'warning' : 'default'}
                 variant="outlined"
+                sx={{ textDecoration: 'none' }}
               />
               <IconButton onClick={(event) => setAnchor(event.currentTarget)}>
                 <Avatar sx={{ width: 38, height: 38, bgcolor: 'rgba(101,212,110,0.16)', color: 'primary.main', border: '1px solid rgba(101,212,110,0.28)', fontSize: 14, fontWeight: 900 }}>
