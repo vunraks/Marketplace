@@ -226,6 +226,9 @@ export default function ListingDetailPage() {
     conversation?.participants.find((p) => p.userId.toLowerCase() !== user?.id?.toLowerCase())?.username
     || (isOwnListing ? 'Покупатель' : listing.sellerUsername)
   const chatPartnerInitial = chatPartner?.[0]?.toUpperCase() ?? 'S'
+  const chatProfileUsername = chatPartner && chatPartner !== 'Покупатель'
+    ? chatPartner
+    : listing.sellerUsername
 
   return (
     <Grid container spacing={3}>
@@ -378,10 +381,26 @@ export default function ListingDetailPage() {
       <Grid size={{ xs: 12, lg: 5 }}>
         <Paper sx={{ minHeight: 594, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <Avatar src={undefined}>{chatPartnerInitial}</Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box
+              component={RouterLink}
+              to={`/seller/${encodeURIComponent(chatProfileUsername)}`}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                minWidth: 0,
+                flex: 1,
+                color: 'inherit',
+                textDecoration: 'none',
+                borderRadius: 2,
+                '&:hover .chat-profile-name': { color: 'primary.main', textDecoration: 'underline' },
+              }}
+            >
+              <Avatar src={undefined}>{chatPartnerInitial}</Avatar>
+              <Box sx={{ minWidth: 0 }}>
               <Typography fontWeight={800} noWrap>{listing.title}</Typography>
-              <Typography variant="body2" color="primary.main">{chatPartner}</Typography>
+                <Typography className="chat-profile-name" variant="body2" color="primary.main">{chatPartner}</Typography>
+              </Box>
             </Box>
             <Chip icon={<AccountBalanceWalletIcon />} label={wallet ? `${wallet.balance.toLocaleString('ru-RU')} VT` : 'VT'} variant="outlined" />
           </Box>
