@@ -6,7 +6,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogContent,
   Divider,
+  IconButton,
   MenuItem,
   Paper,
   Rating,
@@ -22,6 +25,9 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
+import CloseIcon from '@mui/icons-material/Close'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { listingsApi } from '../api/listingsApi'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -42,6 +48,8 @@ export default function ListingDetailPage() {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
   const [disputeReason, setDisputeReason] = useState('')
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [buyerNote, setBuyerNote] = useState('')
   const [message, setMessage] = useState('')
@@ -82,7 +90,27 @@ export default function ListingDetailPage() {
   }, [id, isAuthenticated])
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])
-  const mainImage = assetUrl(listing?.images.find((i) => i.isPrimary)?.url ?? listing?.images[0]?.url)
+  const galleryImages = useMemo(() => {
+    if (!listing) return []
+    const ordered = [...listing.images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder)
+    return ordered
+      .map((image) => assetUrl(image.url))
+      .filter((url): url is string => Boolean(url))
+  }, [listing])
+  const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0]
+
+  const openImagePreview = (index: number) => {
+    setSelectedImageIndex(index)
+    setImagePreviewOpen(true)
+  }
+
+  const showPreviousImage = () => {
+    setSelectedImageIndex((current) => (current - 1 + galleryImages.length) % galleryImages.length)
+  }
+
+  const showNextImage = () => {
+    setSelectedImageIndex((current) => (current + 1) % galleryImages.length)
+  }
 
   const buy = async () => {
     if (!listing) return
@@ -297,11 +325,31 @@ export default function ListingDetailPage() {
             </Stack>
           )}
 
-          {mainImage && (
+          {galleryImages.length > 0 && (
             <>
               <Typography variant="caption" color="text.secondary">Картинки</Typography>
-              <Box sx={{ mt: 1, mb: 3 }}>
-                <Box component="img" src={mainImage} alt={listing.title} sx={{ width: 110, height: 82, objectFit: 'cover', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.08)' }} />
+              <Box sx={{ mt: 1, mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {galleryImages.map((imageUrl, index) => (
+                  <Box
+                    key={imageUrl}
+                    component="button"
+                    type="button"
+                    onClick={() => openImagePreview(index)}
+                    sx={{
+                      width: 118,
+                      height: 88,
+                      p: 0,
+                      border: index === selectedImageIndex ? '2px solid' : '1px solid',
+                      borderColor: index === selectedImageIndex ? 'primary.main' : 'rgba(255,255,255,0.12)',
+                      borderRadius: 1.5,
+                      overflow: 'hidden',
+                      bgcolor: 'transparent',
+                      cursor: 'zoom-in',
+                    }}
+                  >
+                    <Box component="img" src={imageUrl} alt={`${listing.title} ${index + 1}`} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </Box>
+                ))}
               </Box>
             </>
           )}
@@ -377,6 +425,32 @@ export default function ListingDetailPage() {
           </Stack>
         </Paper>
       </Grid>
+
+      <Dialog open={imagePreviewOpen} onClose={() => setImagePreviewOpen(false)} maxWidth="lg" fullWidth>
+        <DialogContent sx={{ p: 0, bgcolor: '#070b0f', position: 'relative', minHeight: { xs: 320, md: 620 }, display: 'grid', placeItems: 'center' }}>
+          <IconButton onClick={() => setImagePreviewOpen(false)} sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2, bgcolor: 'rgba(0,0,0,0.45)' }}>
+            <CloseIcon />
+          </IconButton>
+          {galleryImages.length > 1 && (
+            <>
+              <IconButton onClick={showPreviousImage} sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'rgba(0,0,0,0.45)' }}>
+                <ChevronLeftIcon />
+              </IconButton>
+              <IconButton onClick={showNextImage} sx={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'rgba(0,0,0,0.45)' }}>
+                <ChevronRightIcon />
+              </IconButton>
+            </>
+          )}
+          {selectedImage && (
+            <Box component="img" src={selectedImage} alt={listing.title} sx={{ maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain', display: 'block' }} />
+          )}
+          {galleryImages.length > 1 && (
+            <Typography sx={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', px: 1.5, py: 0.5, borderRadius: 999, bgcolor: 'rgba(0,0,0,0.55)' }}>
+              {selectedImageIndex + 1} / {galleryImages.length}
+            </Typography>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Grid size={{ xs: 12, lg: 5 }}>
         <Paper sx={{ minHeight: 594, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
