@@ -83,7 +83,6 @@ export default function ListingDetailPage() {
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])
   const mainImage = assetUrl(listing?.images.find((i) => i.isPrimary)?.url ?? listing?.images[0]?.url)
-  const sellerInitial = listing?.sellerUsername?.[0]?.toUpperCase() ?? 'S'
 
   const buy = async () => {
     if (!listing) return
@@ -197,10 +196,18 @@ export default function ListingDetailPage() {
       return
     }
 
+    const isSeller = user?.id?.toLowerCase() === listing.sellerId.toLowerCase()
+    if (isSeller && (!conversation?.id || conversation.id === '00000000-0000-0000-0000-000000000000')) {
+      setError('Ответьте покупателю в разделе Чаты — здесь чат появится после его сообщения.')
+      return
+    }
+
     setBusy(true)
     setError('')
     try {
-      const { data } = await commerceApi.sendListingMessage(listing.id, message)
+      const { data } = isSeller && conversation?.id && conversation.id !== '00000000-0000-0000-0000-000000000000'
+        ? await commerceApi.sendConversationMessage(conversation.id, message)
+        : await commerceApi.sendListingMessage(listing.id, message)
       setConversation(data)
       setMessage('')
     } catch (e) {
@@ -213,6 +220,12 @@ export default function ListingDetailPage() {
   if (loading) return <LoadingSpinner />
   if (error && !listing) return <Alert severity="error">{error}</Alert>
   if (!listing) return <Alert severity="error">Не найдено</Alert>
+
+  const isOwnListing = user?.id?.toLowerCase() === listing.sellerId.toLowerCase()
+  const chatPartner =
+    conversation?.participants.find((p) => p.userId.toLowerCase() !== user?.id?.toLowerCase())?.username
+    || (isOwnListing ? 'Покупатель' : listing.sellerUsername)
+  const chatPartnerInitial = chatPartner?.[0]?.toUpperCase() ?? 'S'
 
   return (
     <Grid container spacing={3}>
@@ -352,10 +365,10 @@ export default function ListingDetailPage() {
       <Grid size={{ xs: 12, lg: 5 }}>
         <Paper sx={{ minHeight: 594, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <Avatar src={undefined}>{sellerInitial}</Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography fontWeight={800}>{listing.sellerUsername}</Typography>
-              <Typography variant="body2" color="primary.main">Онлайн</Typography>
+            <Avatar src={undefined}>{chatPartnerInitial}</Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography fontWeight={800} noWrap>{listing.title}</Typography>
+              <Typography variant="body2" color="primary.main">{chatPartner}</Typography>
             </Box>
             <Chip icon={<AccountBalanceWalletIcon />} label={wallet ? `${wallet.balance.toLocaleString('ru-RU')} VT` : 'VT'} variant="outlined" />
           </Box>

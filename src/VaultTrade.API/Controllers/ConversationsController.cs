@@ -34,7 +34,9 @@ public class ConversationsController : ControllerBase
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
             .Include(c => c.Listing)
             .AsSplitQuery()
-            .Where(c => c.Participants.Any(p => p.UserId == userId))
+            .Where(c =>
+                c.Participants.Any(p => p.UserId == userId) &&
+                c.Participants.Count >= 2)
             .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -48,10 +50,43 @@ public class ConversationsController : ControllerBase
         var listing = await _context.Listings.FirstOrDefaultAsync(l => l.Id == listingId, cancellationToken)
             ?? throw new NotFoundException("Listing not found");
 
-        var conversationId = await GetOrCreateConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
-        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
+        if (userId == listing.SellerId)
+        {
+            var sellerConversationId = await _context.Conversations
+                .Where(c =>
+                    c.ListingId == listingId &&
+                    c.Participants.Any(p => p.UserId == userId) &&
+                    c.Participants.Count >= 2)
+                .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
+                .Select(c => c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
+            if (sellerConversationId == Guid.Empty)
+                return Ok(EmptyConversationDto(listingId, listing.Title));
+
+            var sellerConversation = await LoadConversationAsync(sellerConversationId, cancellationToken);
+            return Ok(ToDto(sellerConversation));
+        }
+
+        var conversationId = await GetOrCreateBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
         return Ok(ToDto(conversation));
+    }
+
+    [HttpPost("{conversationId:guid}/messages")]
+    public async Task<IActionResult> SendToConversation(Guid conversationId, [FromBody] SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
+            throw new AppException("Message cannot be empty");
+
+        var userId = User.GetUserId();
+        var isParticipant = await _context.ConversationParticipants
+            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken);
+
+        if (!isParticipant)
+            throw new ForbiddenException("You are not a participant of this conversation");
+
+        return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
     }
 
     [HttpPost("listings/{listingId:guid}/messages")]
@@ -64,9 +99,15 @@ public class ConversationsController : ControllerBase
         var listing = await _context.Listings.FirstOrDefaultAsync(l => l.Id == listingId, cancellationToken)
             ?? throw new NotFoundException("Listing not found");
 
-        var conversationId = await GetOrCreateConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
-        var content = request.Content.Trim();
+        if (userId == listing.SellerId)
+            throw new AppException("Open the buyer conversation from Chats to reply");
 
+        var conversationId = await GetOrCreateBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
+    }
+
+    private async Task<IActionResult> AddMessageAsync(Guid conversationId, Guid userId, string content, CancellationToken cancellationToken)
+    {
         _context.Messages.Add(new Message
         {
             ConversationId = conversationId,
@@ -74,6 +115,11 @@ public class ConversationsController : ControllerBase
             Content = content,
             MessageType = MessageType.Text
         });
+
+        var listingId = await _context.Conversations
+            .Where(c => c.Id == conversationId)
+            .Select(c => c.ListingId)
+            .FirstOrDefaultAsync(cancellationToken);
 
         var recipientIds = await _context.ConversationParticipants
             .Where(p => p.ConversationId == conversationId && p.UserId != userId)
@@ -100,16 +146,18 @@ public class ConversationsController : ControllerBase
         return Ok(dto);
     }
 
-    private async Task<Guid> GetOrCreateConversationIdAsync(Guid listingId, Guid userId, Guid sellerId, CancellationToken cancellationToken)
+    private async Task<Guid> GetOrCreateBuyerSellerConversationIdAsync(
+        Guid listingId,
+        Guid buyerId,
+        Guid sellerId,
+        CancellationToken cancellationToken)
     {
-        var participantIds = userId == sellerId
-            ? new[] { sellerId }
-            : new[] { userId, sellerId };
-
         var conversationId = await _context.Conversations
             .Where(c =>
                 c.ListingId == listingId &&
-                participantIds.All(id => c.Participants.Any(p => p.UserId == id)))
+                c.Participants.Any(p => p.UserId == buyerId) &&
+                c.Participants.Any(p => p.UserId == sellerId))
+            .OrderByDescending(c => c.CreatedAt)
             .Select(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -120,12 +168,9 @@ public class ConversationsController : ControllerBase
         _context.Conversations.Add(conversation);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _context.ConversationParticipants.AddRange(participantIds.Distinct().Select(participantId =>
-            new ConversationParticipant
-            {
-                ConversationId = conversation.Id,
-                UserId = participantId
-            }));
+        _context.ConversationParticipants.AddRange(
+            new ConversationParticipant { ConversationId = conversation.Id, UserId = buyerId },
+            new ConversationParticipant { ConversationId = conversation.Id, UserId = sellerId });
         await _context.SaveChangesAsync(cancellationToken);
 
         return conversation.Id;
@@ -142,6 +187,14 @@ public class ConversationsController : ControllerBase
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
             ?? throw new NotFoundException("Conversation not found");
     }
+
+    private static ConversationDto EmptyConversationDto(Guid listingId, string listingTitle) => new(
+        Guid.Empty,
+        listingId,
+        null,
+        listingTitle,
+        Array.Empty<ParticipantDto>(),
+        Array.Empty<MessageDto>());
 
     private static ConversationDto ToDto(Conversation conversation) => new(
         conversation.Id,
