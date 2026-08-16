@@ -14,7 +14,7 @@ services:
         value: false
       - key: DOTNET_EnableDiagnostics
         value: 0
-      - key: ConnectionStrings__DefaultConnection
+      - key: DATABASE_URL
         sync: false
       - key: Jwt__Secret
         sync: false

@@ -21,8 +21,9 @@ public static class DependencyInjection
         services.Configure<StorageSettings>(configuration.GetSection(StorageSettings.SectionName));
         services.Configure<ExternalAuthSettings>(configuration.GetSection(ExternalAuthSettings.SectionName));
 
+        var connectionString = ConnectionStringHelper.GetPostgresConnectionString(configuration);
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(connectionString));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
