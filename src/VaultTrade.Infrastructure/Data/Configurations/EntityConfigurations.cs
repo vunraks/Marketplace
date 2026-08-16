@@ -70,7 +70,7 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Slug).HasMaxLength(220).IsRequired();
         builder.Property(x => x.Price).HasPrecision(18, 2);
-        builder.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("RUB");
+        builder.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("VT");
         builder.Property(x => x.StockQuantity).HasDefaultValue(1);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.CreatedAt);

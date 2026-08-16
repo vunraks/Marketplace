@@ -10,7 +10,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { SellerDashboard } from '../types'
-import { formatDate, formatPrice } from '../utils/format'
+import { formatDate, formatPrice, siteCurrency } from '../utils/format'
 
 export default function SellerDashboardPage() {
   const [dashboard, setDashboard] = useState<SellerDashboard | null>(null)
@@ -31,8 +31,8 @@ export default function SellerDashboardPage() {
 
   const stats = dashboard.stats
   const statCards = [
-    { title: 'Выручка всего', value: formatPrice(stats.revenueTotal, 'RUB'), icon: <TrendingUpIcon /> },
-    { title: 'За 7 дней', value: formatPrice(stats.revenueWeek, 'RUB'), icon: <TrendingUpIcon /> },
+    { title: 'Выручка всего', value: formatPrice(stats.revenueTotal, siteCurrency), icon: <TrendingUpIcon /> },
+    { title: 'За 7 дней', value: formatPrice(stats.revenueWeek, siteCurrency), icon: <TrendingUpIcon /> },
     { title: 'Активные товары', value: stats.activeListings, icon: <Inventory2OutlinedIcon /> },
     { title: 'Открытые заказы', value: stats.openOrders, icon: <ReceiptLongOutlinedIcon /> },
     { title: 'Споры', value: stats.disputedOrders, icon: <ReportProblemOutlinedIcon /> },

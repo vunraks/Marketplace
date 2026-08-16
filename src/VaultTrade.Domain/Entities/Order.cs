@@ -14,7 +14,7 @@ public class Order : BaseEntity
     public User Seller { get; set; } = null!;
     public int Quantity { get; set; } = 1;
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "RUB";
+    public string Currency { get; set; } = "VT";
     public OrderStatus Status { get; set; } = OrderStatus.Created;
     public string? DeliveryData { get; set; }
     public string? BuyerNote { get; set; }

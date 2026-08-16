@@ -2,8 +2,14 @@ import { apiOrigin } from '../config/api'
 
 export const imagePlaceholder = 'https://placehold.co/600x400?text=VaultTrade'
 
-export const formatPrice = (price: number, currency = 'RUB') =>
-  new Intl.NumberFormat('ru-RU', { style: 'currency', currency, maximumFractionDigits: 0 }).format(price)
+export const siteCurrency = 'VT'
+
+export const formatPrice = (price: number, currency = siteCurrency) => {
+  const displayCurrency = currency === 'RUB' ? siteCurrency : currency
+  const value = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(price)
+
+  return `${value} ${displayCurrency}`
+}
 
 export const formatDate = (date: string) =>
   new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date))
