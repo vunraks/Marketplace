@@ -185,9 +185,9 @@ export default function ChatsPage() {
                   const mine = item.senderId.toLowerCase() === user?.id?.toLowerCase()
                   return (
                     <Box key={item.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)' }}>
+                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)', overflowWrap: 'anywhere' }}>
                         <Typography variant="caption" color="text.secondary">{item.senderUsername} · {formatDateTime(item.createdAt)}</Typography>
-                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{item.content}</Typography>
+                        <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.content}</Typography>
                       </Box>
                     </Box>
                   )
@@ -196,6 +196,9 @@ export default function ChatsPage() {
               <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <TextField
                   fullWidth
+                  multiline
+                  minRows={1}
+                  maxRows={5}
                   placeholder={active.isClosed ? 'Чат закрыт продавцом' : 'Написать...'}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -207,7 +210,7 @@ export default function ChatsPage() {
                     }
                   }}
                 />
-                <Button variant="contained" onClick={send} disabled={busy || active.isClosed || !message.trim()}>
+                <Button variant="contained" onClick={send} disabled={busy || active.isClosed || !message.trim()} sx={{ alignSelf: 'flex-end', minHeight: 56, minWidth: 56 }}>
                   <SendIcon />
                 </Button>
               </Box>

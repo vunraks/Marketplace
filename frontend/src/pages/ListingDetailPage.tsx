@@ -517,9 +517,9 @@ export default function ListingDetailPage() {
                   const mine = m.senderId === user?.id
                   return (
                     <Box key={m.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)' }}>
+                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)', overflowWrap: 'anywhere' }}>
                         <Typography variant="caption" color="text.secondary">{m.senderUsername} · {formatDateTime(m.createdAt)}</Typography>
-                        <Typography sx={{ whiteSpace: 'pre-wrap' }}>{m.content}</Typography>
+                        <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.content}</Typography>
                       </Box>
                     </Box>
                   )
@@ -539,8 +539,23 @@ export default function ListingDetailPage() {
             </Alert>
           )}
           <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <TextField fullWidth placeholder={conversation?.isClosed ? 'Чат закрыт' : 'Написать...'} value={message} onChange={(e) => setMessage(e.target.value)} disabled={conversation?.isClosed} onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }} />
-            <Button variant="contained" onClick={sendMessage} disabled={busy || conversation?.isClosed || !message.trim()} sx={{ minWidth: 52 }}>
+            <TextField
+              fullWidth
+              multiline
+              minRows={1}
+              maxRows={5}
+              placeholder={conversation?.isClosed ? 'Чат закрыт' : 'Написать...'}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={conversation?.isClosed}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  void sendMessage()
+                }
+              }}
+            />
+            <Button variant="contained" onClick={sendMessage} disabled={busy || conversation?.isClosed || !message.trim()} sx={{ alignSelf: 'flex-end', minHeight: 56, minWidth: 56 }}>
               <SendIcon />
             </Button>
           </Box>
