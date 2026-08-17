@@ -479,7 +479,7 @@ export default function ListingDetailPage() {
       </Dialog>
 
       <Grid size={{ xs: 12, lg: 5 }}>
-        <Paper sx={{ minHeight: 594, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
+        <Paper sx={{ height: { xs: 560, lg: 594 }, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden', minHeight: 0 }}>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <Box
               component={RouterLink}
@@ -510,7 +510,7 @@ export default function ListingDetailPage() {
             <Chip icon={<AccountBalanceWalletIcon />} label={wallet ? `${wallet.balance.toLocaleString('ru-RU')} VT` : 'VT'} variant="outlined" />
           </Box>
 
-          <Box sx={{ flex: 1, p: 2, overflow: 'auto', minHeight: 320 }}>
+          <Box sx={{ flex: '1 1 auto', p: 2, overflow: 'auto', minHeight: 0 }}>
             {conversation?.messages.length ? (
               <Stack spacing={1.25}>
                 {conversation.messages.map((m) => {
@@ -538,12 +538,12 @@ export default function ListingDetailPage() {
               Чат закрыт продавцом. При новой покупке этого товара чат откроется автоматически.
             </Alert>
           )}
-          <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <TextField
               fullWidth
               multiline
               minRows={1}
-              maxRows={5}
+              maxRows={3}
               placeholder={conversation?.isClosed ? 'Чат закрыт' : 'Написать...'}
               value={message}
               onChange={(e) => setMessage(e.target.value)}

@@ -4,6 +4,7 @@ import type { AdminUser, ProfilePost, PublicUserProfile, UserProfile } from '../
 export interface UpdateProfilePayload {
   firstName?: string
   lastName?: string
+  avatarUrl?: string
   bio?: string
   phone?: string
 }

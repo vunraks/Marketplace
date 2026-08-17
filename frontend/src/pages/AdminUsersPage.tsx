@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -18,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import { usersApi } from '../api/usersApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -189,7 +191,22 @@ export default function AdminUsersPage() {
               return (
                 <TableRow key={user.id} hover>
                   <TableCell>
-                    <Typography fontWeight={800}>{user.username}</Typography>
+                    <Typography
+                      component={RouterLink}
+                      to={`/seller/${encodeURIComponent(user.username)}`}
+                      fontWeight={800}
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: 'inherit',
+                        textDecoration: 'none',
+                        '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+                      }}
+                    >
+                      {user.username}
+                      <OpenInNewIcon sx={{ fontSize: 15 }} />
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">{user.email}</Typography>
                   </TableCell>
                   <TableCell>

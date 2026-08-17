@@ -36,6 +36,7 @@ public class UserService : IUserService
 
         user.FirstName = request.FirstName?.Trim();
         user.LastName = request.LastName?.Trim();
+        user.AvatarUrl = request.AvatarUrl?.Trim();
         user.Bio = request.Bio?.Trim();
         user.Phone = request.Phone?.Trim();
         user.UpdatedAt = DateTime.UtcNow;

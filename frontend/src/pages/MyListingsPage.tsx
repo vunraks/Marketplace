@@ -1,9 +1,23 @@
-import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, IconButton, Paper, Stack, Typography } from '@mui/material'
+﻿import { useEffect, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded'
 import { Link as RouterLink } from 'react-router-dom'
 import { listingsApi } from '../api/listingsApi'
 import ListingCard from '../components/listing/ListingCard'
@@ -15,6 +29,7 @@ export default function MyListingsPage() {
   const [listings, setListings] = useState<ListingCardType[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ListingCardType | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -24,7 +39,7 @@ export default function MyListingsPage() {
     listingsApi
       .getMy()
       .then((response) => setListings(response.data.items))
-      .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить объявления')))
+      .catch((e) => setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёСЏ')))
       .finally(() => setLoading(false))
   }
 
@@ -32,8 +47,7 @@ export default function MyListingsPage() {
     load()
   }, [])
 
-  const removeListing = async (listing: ListingCardType) => {
-    const confirmed = window.confirm(`Удалить объявление "${listing.title}"?`)
+  const removeListing = async (listing: ListingCardType, confirmed = false) => {
     if (!confirmed) return
 
     setProcessingId(listing.id)
@@ -42,9 +56,10 @@ export default function MyListingsPage() {
     try {
       await listingsApi.remove(listing.id)
       setListings((current) => current.filter((item) => item.id !== listing.id))
-      setNotice('Объявление удалено')
+      setDeleteTarget(null)
+      setNotice('РћР±СЉСЏРІР»РµРЅРёРµ СѓРґР°Р»РµРЅРѕ')
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось удалить объявление'))
+      setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ'))
     } finally {
       setProcessingId(null)
     }
@@ -54,15 +69,15 @@ export default function MyListingsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' }, gap: 2, mb: 3, flexDirection: { xs: 'column', md: 'row' } }}>
         <Box>
-          <Typography variant="h4" fontWeight={800}>Мои объявления</Typography>
+          <Typography variant="h4" fontWeight={800}>РњРѕРё РѕР±СЉСЏРІР»РµРЅРёСЏ</Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            Создавайте, редактируйте и удаляйте свои товары.
+            РЎРѕР·РґР°РІР°Р№С‚Рµ, СЂРµРґР°РєС‚РёСЂСѓР№С‚Рµ Рё СѓРґР°Р»СЏР№С‚Рµ СЃРІРѕРё С‚РѕРІР°СЂС‹.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={load}>Обновить</Button>
+          <Button variant="outlined" onClick={load}>РћР±РЅРѕРІРёС‚СЊ</Button>
           <Button component={RouterLink} to="/my-listings/create" variant="contained" startIcon={<AddCircleOutlineIcon />}>
-            Создать
+            РЎРѕР·РґР°С‚СЊ
           </Button>
         </Stack>
       </Box>
@@ -74,9 +89,9 @@ export default function MyListingsPage() {
         <LoadingSpinner />
       ) : listings.length === 0 ? (
         <Paper sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h6" fontWeight={800}>У вас пока нет объявлений</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>Создайте первый товар и отправьте его на модерацию.</Typography>
-          <Button component={RouterLink} to="/my-listings/create" variant="contained">Создать объявление</Button>
+          <Typography variant="h6" fontWeight={800}>РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ РѕР±СЉСЏРІР»РµРЅРёР№</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ С‚РѕРІР°СЂ Рё РѕС‚РїСЂР°РІСЊС‚Рµ РµРіРѕ РЅР° РјРѕРґРµСЂР°С†РёСЋ.</Typography>
+          <Button component={RouterLink} to="/my-listings/create" variant="contained">РЎРѕР·РґР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ</Button>
         </Paper>
       ) : (
         <Box className="listing-grid">
@@ -89,13 +104,13 @@ export default function MyListingsPage() {
                 color={listing.status === 'Active' ? 'success' : listing.status === 'Rejected' ? 'error' : 'default'}
               />
               <Paper sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 0.25, p: 0.5, borderRadius: 1.5, bgcolor: 'rgba(8,13,18,0.86)', backdropFilter: 'blur(10px)' }}>
-                <IconButton component={RouterLink} to={`/listing/${listing.id}`} size="small" title="Открыть">
+                <IconButton component={RouterLink} to={`/listing/${listing.id}`} size="small" title="РћС‚РєСЂС‹С‚СЊ">
                   <OpenInNewIcon fontSize="small" />
                 </IconButton>
-                <IconButton component={RouterLink} to={`/my-listings/${listing.id}/edit`} size="small" title="Редактировать">
+                <IconButton component={RouterLink} to={`/my-listings/${listing.id}/edit`} size="small" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
                   <EditOutlinedIcon fontSize="small" />
                 </IconButton>
-                <IconButton size="small" title="Удалить" color="error" disabled={processingId === listing.id} onClick={() => removeListing(listing)}>
+                <IconButton size="small" title="РЈРґР°Р»РёС‚СЊ" color="error" disabled={processingId === listing.id} onClick={() => setDeleteTarget(listing)}>
                   <DeleteOutlineIcon fontSize="small" />
                 </IconButton>
               </Paper>
@@ -104,6 +119,43 @@ export default function MyListingsPage() {
           ))}
         </Box>
       )}
+
+      <Dialog open={Boolean(deleteTarget)} onClose={() => processingId ? undefined : setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Box sx={{ width: 38, height: 38, display: 'grid', placeItems: 'center', borderRadius: 1.5, bgcolor: 'rgba(244,67,54,0.12)', color: 'error.main' }}>
+            <WarningAmberRoundedIcon />
+          </Box>
+          Удалить объявление
+        </DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Объявление будет удалено из каталога и из списка ваших товаров. Это действие нельзя быстро отменить.
+          </Typography>
+          {deleteTarget && (
+            <Paper sx={{ mt: 2, p: 1.5, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.04)' }}>
+              <Typography fontWeight={800}>{deleteTarget.title}</Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
+                <Chip label={deleteTarget.status} size="small" />
+                <Chip label={`${deleteTarget.stockQuantity} шт.`} size="small" variant="outlined" />
+              </Stack>
+            </Paper>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" onClick={() => setDeleteTarget(null)} disabled={Boolean(processingId)}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<DeleteOutlineIcon />}
+            onClick={() => deleteTarget && removeListing(deleteTarget, true)}
+            disabled={Boolean(processingId)}
+          >
+            Удалить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
