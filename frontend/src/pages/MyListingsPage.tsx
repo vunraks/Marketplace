@@ -39,7 +39,7 @@ export default function MyListingsPage() {
     listingsApi
       .getMy()
       .then((response) => setListings(response.data.items))
-      .catch((e) => setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёСЏ')))
+      .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить объявления')))
       .finally(() => setLoading(false))
   }
 
@@ -57,9 +57,9 @@ export default function MyListingsPage() {
       await listingsApi.remove(listing.id)
       setListings((current) => current.filter((item) => item.id !== listing.id))
       setDeleteTarget(null)
-      setNotice('РћР±СЉСЏРІР»РµРЅРёРµ СѓРґР°Р»РµРЅРѕ')
+      setNotice('Объявление удалено')
     } catch (e) {
-      setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ'))
+      setError(getErrorMessage(e, 'Не удалось удалить объявление'))
     } finally {
       setProcessingId(null)
     }
@@ -69,15 +69,15 @@ export default function MyListingsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' }, gap: 2, mb: 3, flexDirection: { xs: 'column', md: 'row' } }}>
         <Box>
-          <Typography variant="h4" fontWeight={800}>РњРѕРё РѕР±СЉСЏРІР»РµРЅРёСЏ</Typography>
+          <Typography variant="h4" fontWeight={800}>Мои объявления</Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            РЎРѕР·РґР°РІР°Р№С‚Рµ, СЂРµРґР°РєС‚РёСЂСѓР№С‚Рµ Рё СѓРґР°Р»СЏР№С‚Рµ СЃРІРѕРё С‚РѕРІР°СЂС‹.
+            Создавайте, редактируйте и удаляйте свои товары.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={load}>РћР±РЅРѕРІРёС‚СЊ</Button>
+          <Button variant="outlined" onClick={load}>Обновить</Button>
           <Button component={RouterLink} to="/my-listings/create" variant="contained" startIcon={<AddCircleOutlineIcon />}>
-            РЎРѕР·РґР°С‚СЊ
+            Создать
           </Button>
         </Stack>
       </Box>
@@ -89,9 +89,9 @@ export default function MyListingsPage() {
         <LoadingSpinner />
       ) : listings.length === 0 ? (
         <Paper sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
-          <Typography variant="h6" fontWeight={800}>РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ РѕР±СЉСЏРІР»РµРЅРёР№</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ С‚РѕРІР°СЂ Рё РѕС‚РїСЂР°РІСЊС‚Рµ РµРіРѕ РЅР° РјРѕРґРµСЂР°С†РёСЋ.</Typography>
-          <Button component={RouterLink} to="/my-listings/create" variant="contained">РЎРѕР·РґР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ</Button>
+          <Typography variant="h6" fontWeight={800}>У вас пока нет объявлений</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>Создайте первый товар и отправьте его на модерацию.</Typography>
+          <Button component={RouterLink} to="/my-listings/create" variant="contained">Создать объявление</Button>
         </Paper>
       ) : (
         <Box className="listing-grid">
@@ -104,13 +104,13 @@ export default function MyListingsPage() {
                 color={listing.status === 'Active' ? 'success' : listing.status === 'Rejected' ? 'error' : 'default'}
               />
               <Paper sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 0.25, p: 0.5, borderRadius: 1.5, bgcolor: 'rgba(8,13,18,0.86)', backdropFilter: 'blur(10px)' }}>
-                <IconButton component={RouterLink} to={`/listing/${listing.id}`} size="small" title="РћС‚РєСЂС‹С‚СЊ">
+                <IconButton component={RouterLink} to={`/listing/${listing.id}`} size="small" title="Открыть">
                   <OpenInNewIcon fontSize="small" />
                 </IconButton>
-                <IconButton component={RouterLink} to={`/my-listings/${listing.id}/edit`} size="small" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
+                <IconButton component={RouterLink} to={`/my-listings/${listing.id}/edit`} size="small" title="Редактировать">
                   <EditOutlinedIcon fontSize="small" />
                 </IconButton>
-                <IconButton size="small" title="РЈРґР°Р»РёС‚СЊ" color="error" disabled={processingId === listing.id} onClick={() => setDeleteTarget(listing)}>
+                <IconButton size="small" title="Удалить" color="error" disabled={processingId === listing.id} onClick={() => setDeleteTarget(listing)}>
                   <DeleteOutlineIcon fontSize="small" />
                 </IconButton>
               </Paper>

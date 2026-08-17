@@ -35,11 +35,11 @@ import type { ProfilePost } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
 
 const statItems = [
-  ['0', 'СЃРёРјРїР°С‚РёР№'],
-  ['0', 'Р»Р°Р№РєРѕРІ'],
-  ['0', 'СЃРѕРѕР±С‰РµРЅРёР№'],
-  ['0', 'С‚СЂРѕС„РµРµРІ'],
-  ['0', 'РїРѕРґРїРёСЃРѕРє'],
+  ['0', 'симпатий'],
+  ['0', 'лайков'],
+  ['0', 'сообщений'],
+  ['0', 'трофеев'],
+  ['0', 'подписок'],
 ]
 
 export default function ProfilePage() {
@@ -76,12 +76,12 @@ export default function ProfilePage() {
   const initials = profile.username.slice(0, 2).toUpperCase()
   const joinedAt = formatDate(profile.createdAt)
   const primaryRole = profile.roles.includes('Admin')
-    ? 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ'
+    ? 'Администратор'
     : profile.roles.includes('Moderator')
-      ? 'РњРѕРґРµСЂР°С‚РѕСЂ'
+      ? 'Модератор'
       : profile.roles.includes('Seller')
-        ? 'РџСЂРѕРґР°РІРµС†'
-        : 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ'
+        ? 'Продавец'
+        : 'Пользователь'
 
   const openEditProfile = () => {
     setEditValues({
@@ -118,16 +118,16 @@ export default function ProfilePage() {
 
   const adjustMyWallet = async (direction: 'topup' | 'withdraw') => {
     if (!isAdmin) {
-      setError('РџРѕРїРѕР»РЅРµРЅРёРµ Рё СЃРЅСЏС‚РёРµ РІРёСЂС‚СѓР°Р»СЊРЅРѕР№ РІР°Р»СЋС‚С‹ РґРѕСЃС‚СѓРїРЅС‹ С‚РѕР»СЊРєРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ.')
+      setError('Пополнение и снятие виртуальной валюты доступны только администратору.')
       return
     }
 
-    const raw = window.prompt(direction === 'topup' ? 'РЎРєРѕР»СЊРєРѕ VT РїРѕРїРѕР»РЅРёС‚СЊ?' : 'РЎРєРѕР»СЊРєРѕ VT СЃРЅСЏС‚СЊ?', '1000')
+    const raw = window.prompt(direction === 'topup' ? 'Сколько VT пополнить?' : 'Сколько VT снять?', '1000')
     if (raw === null) return
 
     const amount = Number(raw.replace(',', '.'))
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError('Р’РІРµРґРёС‚Рµ РїРѕР»РѕР¶РёС‚РµР»СЊРЅСѓСЋ СЃСѓРјРјСѓ.')
+      setError('Введите положительную сумму.')
       return
     }
 
@@ -139,7 +139,7 @@ export default function ProfilePage() {
       else await commerceApi.withdrawWallet(amount)
       await dispatch(fetchProfile())
     } catch (e) {
-      setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ Р±Р°Р»Р°РЅСЃ'))
+      setError(getErrorMessage(e, 'Не удалось изменить баланс'))
     } finally {
       setBusy(false)
     }
@@ -148,7 +148,7 @@ export default function ProfilePage() {
   const redeemPromo = async () => {
     const code = promoCode.trim()
     if (!code) {
-      setError('Р’РІРµРґРёС‚Рµ РїСЂРѕРјРѕРєРѕРґ.')
+      setError('Введите промокод.')
       return
     }
 
@@ -158,11 +158,11 @@ export default function ProfilePage() {
     try {
       const { data } = await promoCodesApi.redeem(code)
       setPromoCode('')
-      setNotice(`РџСЂРѕРјРѕРєРѕРґ ${data.code} Р°РєС‚РёРІРёСЂРѕРІР°РЅ: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
+      setNotice(`Промокод ${data.code} активирован: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
       dispatch(setVirtualBalance(data.balance))
       await dispatch(fetchProfile())
     } catch (e) {
-      setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р°РєС‚РёРІРёСЂРѕРІР°С‚СЊ РїСЂРѕРјРѕРєРѕРґ'))
+      setError(getErrorMessage(e, 'Не удалось активировать промокод'))
     } finally {
       setBusy(false)
     }
@@ -179,7 +179,7 @@ export default function ProfilePage() {
       setPosts((current) => [data, ...current])
       setPostText('')
     } catch (e) {
-      setError(getErrorMessage(e, 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСѓР±Р»РёРєРѕРІР°С‚СЊ РїРѕСЃС‚'))
+      setError(getErrorMessage(e, 'Не удалось опубликовать пост'))
     } finally {
       setBusy(false)
     }
@@ -188,7 +188,7 @@ export default function ProfilePage() {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Р¤РѕСЂСѓРј / РџРѕР»СЊР·РѕРІР°С‚РµР»Рё / <Box component="span" sx={{ color: 'primary.main' }}>{profile.username}</Box>
+        Форум / Пользователи / <Box component="span" sx={{ color: 'primary.main' }}>{profile.username}</Box>
       </Typography>
 
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
@@ -202,20 +202,20 @@ export default function ProfilePage() {
                 {initials}
               </Avatar>
             </Box>
-            <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ</Button>
+            <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>Редактировать</Button>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>
-            <Typography color="text.secondary" fontWeight={700}>РЎС‚СЂР°С…РѕРІРѕР№ РґРµРїРѕР·РёС‚</Typography>
+            <Typography color="text.secondary" fontWeight={700}>Страховой депозит</Typography>
             <Typography fontWeight={800} sx={{ mt: 0.5 }}>{profile.username}</Typography>
             <Typography variant="h5" color="error.main" sx={{ mt: 2 }}>{profile.virtualBalance.toLocaleString('ru-RU')} VT</Typography>
             <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-              <Button fullWidth variant="contained" startIcon={<AddCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('topup')}>РџРѕРїРѕР»РЅРёС‚СЊ</Button>
-              <Button fullWidth variant="outlined" startIcon={<RemoveCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('withdraw')}>РЎРЅСЏС‚СЊ</Button>
+              <Button fullWidth variant="contained" startIcon={<AddCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('topup')}>Пополнить</Button>
+              <Button fullWidth variant="outlined" startIcon={<RemoveCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('withdraw')}>Снять</Button>
             </Stack>
             {!isAdmin && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                РР·РјРµРЅСЏС‚СЊ РІРёСЂС‚СѓР°Р»СЊРЅСѓСЋ РІР°Р»СЋС‚Сѓ РјРѕР¶РµС‚ С‚РѕР»СЊРєРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ.
+                Изменять виртуальную валюту может только администратор.
               </Typography>
             )}
           </Paper>
@@ -223,10 +223,10 @@ export default function ProfilePage() {
           <Paper sx={{ p: 2, borderRadius: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <LocalOfferOutlinedIcon color="primary" fontSize="small" />
-              <Typography fontWeight={800}>РџСЂРѕРјРѕРєРѕРґ</Typography>
+              <Typography fontWeight={800}>Промокод</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Р’РІРµРґРёС‚Рµ РєРѕРґ, С‡С‚РѕР±С‹ РїРѕР»СѓС‡РёС‚СЊ Р±РѕРЅСѓСЃ РЅР° Р±Р°Р»Р°РЅСЃ.
+              Введите код, чтобы получить бонус на баланс.
             </Typography>
             <Stack spacing={1} sx={{ mt: 1.5 }}>
               <TextField
@@ -239,18 +239,18 @@ export default function ProfilePage() {
                 }}
               />
               <Button variant="contained" disabled={busy || !promoCode.trim()} onClick={redeemPromo}>
-                РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ
+                Активировать
               </Button>
             </Stack>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography fontWeight={800}>Р—Р°РјРµС‚РєР° Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»Рµ</Typography>
-              <Chip label="Р»РёС‡РЅРѕ" size="small" variant="outlined" />
+              <Typography fontWeight={800}>Заметка о пользователе</Typography>
+              <Chip label="лично" size="small" variant="outlined" />
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
-              {profile.bio || 'Р—РґРµСЃСЊ РјРѕР¶РЅРѕ С…СЂР°РЅРёС‚СЊ РєРѕСЂРѕС‚РєСѓСЋ Р·Р°РјРµС‚РєСѓ Рѕ СЃРґРµР»РєР°С… Рё РґРѕРІРµСЂРёРё.'}
+              {profile.bio || 'Здесь можно хранить короткую заметку о сделках и доверии.'}
             </Typography>
           </Paper>
         </Stack>
@@ -265,16 +265,16 @@ export default function ProfilePage() {
                 </Stack>
                 <Divider sx={{ mb: 2 }} />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 1 }}>
-                  <Typography color="text.secondary">Р РµРіРёСЃС‚СЂР°С†РёСЏ:</Typography>
+                  <Typography color="text.secondary">Регистрация:</Typography>
                   <Typography fontWeight={700}>{joinedAt}</Typography>
                   <Typography color="text.secondary">ID:</Typography>
                   <Typography fontWeight={700}>{profile.id.slice(0, 8)}</Typography>
-                  <Typography color="text.secondary">РЎС‚Р°С‚СѓСЃ:</Typography>
+                  <Typography color="text.secondary">Статус:</Typography>
                   <Typography fontWeight={700}>{primaryRole}</Typography>
                 </Box>
               </Box>
               <Typography color="text.secondary" sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-                РЎРјРѕС‚СЂРёС‚ РѕР±СЉСЏРІР»РµРЅРёСЏ РЅР° РњР°СЂРєРµС‚Рµ, С‚РѕР»СЊРєРѕ С‡С‚Рѕ
+                Смотрит объявления на Маркете, только что
               </Typography>
             </Stack>
 
@@ -287,11 +287,11 @@ export default function ProfilePage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ mt: 3 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <ForumOutlinedIcon color="primary" />
-                <Typography fontWeight={800}>РўРµРјС‹ РѕС‚ {profile.username}</Typography>
+                <Typography fontWeight={800}>Темы от {profile.username}</Typography>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <ShoppingCartOutlinedIcon color="primary" />
-                <Typography fontWeight={800}>РђРєРєР°СѓРЅС‚С‹ РЅР° РњР°СЂРєРµС‚Рµ</Typography>
+                <Typography fontWeight={800}>Аккаунты на Маркете</Typography>
               </Stack>
             </Stack>
 
@@ -308,11 +308,11 @@ export default function ProfilePage() {
 
           <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <Tabs value={0} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <Tab label="РЎС‚РµРЅР°" />
-              <Tab label="РЎРѕР±СЃС‚РІРµРЅРЅС‹Рµ РїРѕСЃС‚С‹" />
-              <Tab label="Р›РµРЅС‚Р°" />
-              <Tab label="РќРµРґР°РІРЅРёРµ СЃРѕРѕР±С‰РµРЅРёСЏ" />
-              <Tab label="РСЃС‚РѕСЂРёСЏ Р±Р»РѕРєРёСЂРѕРІРѕРє" />
+              <Tab label="Стена" />
+              <Tab label="Собственные посты" />
+              <Tab label="Лента" />
+              <Tab label="Недавние сообщения" />
+              <Tab label="История блокировок" />
             </Tabs>
             <Box sx={{ p: 2.5 }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
@@ -321,14 +321,14 @@ export default function ProfilePage() {
                   fullWidth
                   multiline
                   maxRows={4}
-                  placeholder="РќР°РїРёС€РёС‚Рµ С‡С‚Рѕ-РЅРёР±СѓРґСЊ..."
+                  placeholder="Напишите что-нибудь..."
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                 />
               </Stack>
               <Stack direction="row" spacing={1} sx={{ mt: 2, ml: { xs: 0, sm: 7 } }}>
-                <Button variant="contained" disabled={busy || !postText.trim()} onClick={publishPost}>РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ</Button>
-                <Button variant="outlined" disabled>Р”РѕР±Р°РІРёС‚СЊ РіРѕР»РѕСЃРѕРІР°РЅРёРµ</Button>
+                <Button variant="contained" disabled={busy || !postText.trim()} onClick={publishPost}>Опубликовать</Button>
+                <Button variant="outlined" disabled>Добавить голосование</Button>
               </Stack>
             </Box>
           </Paper>
@@ -336,7 +336,7 @@ export default function ProfilePage() {
           <Stack spacing={1.25}>
             {posts.length === 0 ? (
               <Paper sx={{ p: 3, borderRadius: 2, textAlign: 'center' }}>
-                <Typography color="text.secondary">РќР° СЃС‚РµРЅРµ РїРѕРєР° РЅРµС‚ РЅРё РѕРґРЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ</Typography>
+                <Typography color="text.secondary">На стене пока нет ни одного сообщения</Typography>
               </Paper>
             ) : posts.map((post) => (
               <Paper key={post.id} sx={{ p: 2, borderRadius: 2 }}>
