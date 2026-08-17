@@ -17,6 +17,7 @@ export const commerceApi = {
   withdrawWallet: (amount: number) => axiosClient.post<Wallet>('/wallet/withdraw', { amount }),
   createOrder: (listingId: string, quantity: number, buyerNote?: string) =>
     axiosClient.post<Order>('/orders', { listingId, quantity, buyerNote }),
+  getActiveOrderForListing: (listingId: string) => axiosClient.get<Order | null>(`/orders/listings/${listingId}/active`),
   confirmOrder: (orderId: string) => axiosClient.post<Order>(`/orders/${orderId}/confirm`),
   getConversations: () => axiosClient.get<Conversation[]>('/conversations'),
   getConversationForListing: (listingId: string) =>
@@ -25,6 +26,8 @@ export const commerceApi = {
     axiosClient.post<Conversation>(`/conversations/listings/${listingId}/messages`, { content }),
   sendConversationMessage: (conversationId: string, content: string) =>
     axiosClient.post<Conversation>(`/conversations/${conversationId}/messages`, { content }),
+  closeConversation: (conversationId: string) =>
+    axiosClient.post<Conversation>(`/conversations/${conversationId}/close`),
   getSellerReviews: (sellerId: string) =>
     axiosClient.get<SellerReview[]>(`/reviews/sellers/${sellerId}`),
   createReview: (orderId: string, rating: number, comment?: string) =>

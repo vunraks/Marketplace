@@ -33,7 +33,7 @@ import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation, ListingDetail, Order, SellerReview, Wallet } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
-import { assetUrl, formatDate, formatPrice, getErrorMessage, imagePlaceholder } from '../utils/format'
+import { assetUrl, formatDateTime, formatPrice, getErrorMessage, imagePlaceholder } from '../utils/format'
 import { useAppSelector } from '../store/hooks'
 
 export default function ListingDetailPage() {
@@ -77,6 +77,7 @@ export default function ListingDetailPage() {
     Promise.allSettled([
       commerceApi.getWallet().then((r) => setWallet(r.data)),
       commerceApi.getConversationForListing(id).then((r) => setConversation(r.data)),
+      commerceApi.getActiveOrderForListing(id).then((r) => setCurrentOrder(r.data)),
       commerceApi.getFavoriteState(id).then((r) => setIsFavorite(r.data.isFavorite)),
     ])
   }, [id, isAuthenticated])
@@ -126,7 +127,6 @@ export default function ListingDetailPage() {
       const { data: order } = await commerceApi.createOrder(listing.id, quantity, buyerNote)
       setCurrentOrder(order)
       setNotice(`Заказ ${order.orderNumber} создан. Баланс пока не списан: подтвердите товар после проверки.`)
-      setListing({ ...listing, stockQuantity: Math.max(listing.stockQuantity - quantity, 0) })
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось оформить заказ'))
     } finally {
@@ -168,6 +168,8 @@ export default function ListingDetailPage() {
       setCurrentOrder(data)
       const walletResponse = await commerceApi.getWallet()
       setWallet(walletResponse.data)
+      const listingResponse = await listingsApi.getById(data.listingId)
+      setListing(listingResponse.data)
       setNotice('Товар подтверждён. Баланс списан, теперь можно оставить отзыв.')
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось подтвердить товар'))
@@ -225,6 +227,11 @@ export default function ListingDetailPage() {
     }
 
     const isSeller = user?.id?.toLowerCase() === listing.sellerId.toLowerCase()
+    if (conversation?.isClosed) {
+      setError('Чат закрыт продавцом. При новой покупке этого товара чат откроется автоматически.')
+      return
+    }
+
     if (isSeller && (!conversation?.id || conversation.id === '00000000-0000-0000-0000-000000000000')) {
       setError('Ответьте покупателю в разделе Чаты — здесь чат появится после его сообщения.')
       return
@@ -488,8 +495,13 @@ export default function ListingDetailPage() {
             >
               <Avatar src={undefined}>{chatPartnerInitial}</Avatar>
               <Box sx={{ minWidth: 0 }}>
-              <Typography fontWeight={800} noWrap>{listing.title}</Typography>
+                <Typography fontWeight={800} noWrap>{listing.title}</Typography>
                 <Typography className="chat-profile-name" variant="body2" color="primary.main">{chatPartner}</Typography>
+                {conversation?.openedAt && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {conversation.isClosed ? 'Закрыт' : 'Открыт'}: {formatDateTime(conversation.isClosed && conversation.closedAt ? conversation.closedAt : conversation.openedAt)}
+                  </Typography>
+                )}
               </Box>
             </Box>
             <Chip icon={<AccountBalanceWalletIcon />} label={wallet ? `${wallet.balance.toLocaleString('ru-RU')} VT` : 'VT'} variant="outlined" />
@@ -503,7 +515,7 @@ export default function ListingDetailPage() {
                   return (
                     <Box key={m.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
                       <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)' }}>
-                        <Typography variant="caption" color="text.secondary">{m.senderUsername} · {formatDate(m.createdAt)}</Typography>
+                        <Typography variant="caption" color="text.secondary">{m.senderUsername} · {formatDateTime(m.createdAt)}</Typography>
                         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{m.content}</Typography>
                       </Box>
                     </Box>
@@ -518,9 +530,14 @@ export default function ListingDetailPage() {
             )}
           </Box>
 
+          {conversation?.isClosed && (
+            <Alert severity="info" sx={{ borderRadius: 0 }}>
+              Чат закрыт продавцом. При новой покупке этого товара чат откроется автоматически.
+            </Alert>
+          )}
           <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <TextField fullWidth placeholder="Написать..." value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }} />
-            <Button variant="contained" onClick={sendMessage} disabled={busy || !message.trim()} sx={{ minWidth: 52 }}>
+            <TextField fullWidth placeholder={conversation?.isClosed ? 'Чат закрыт' : 'Написать...'} value={message} onChange={(e) => setMessage(e.target.value)} disabled={conversation?.isClosed} onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }} />
+            <Button variant="contained" onClick={sendMessage} disabled={busy || conversation?.isClosed || !message.trim()} sx={{ minWidth: 52 }}>
               <SendIcon />
             </Button>
           </Box>

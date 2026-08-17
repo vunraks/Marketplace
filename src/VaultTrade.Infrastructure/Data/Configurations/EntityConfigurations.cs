@@ -122,6 +122,19 @@ public class ConversationParticipantConfiguration : IEntityTypeConfiguration<Con
     }
 }
 
+public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
+{
+    public void Configure(EntityTypeBuilder<Conversation> builder)
+    {
+        builder.Property(x => x.OpenedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.HasOne(x => x.ClosedBy)
+            .WithMany()
+            .HasForeignKey(x => x.ClosedById)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
 public class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)

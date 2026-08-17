@@ -89,6 +89,35 @@ public class ConversationsController : ControllerBase
         return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
     }
 
+    [HttpPost("{conversationId:guid}/close")]
+    public async Task<IActionResult> Close(Guid conversationId, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var conversation = await _context.Conversations
+            .Include(c => c.Participants).ThenInclude(p => p.User)
+            .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
+            .Include(c => c.Listing)
+            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
+            ?? throw new NotFoundException("Conversation not found");
+
+        if (conversation.Listing?.SellerId != userId)
+            throw new ForbiddenException("Only seller can close this chat");
+
+        if (!conversation.IsClosed)
+        {
+            conversation.IsClosed = true;
+            conversation.ClosedAt = DateTime.UtcNow;
+            conversation.ClosedById = userId;
+            conversation.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var dto = ToDto(conversation);
+        await _realtime.SendConversationUpdatedAsync(conversation.Participants.Select(p => p.UserId), dto, cancellationToken);
+
+        return Ok(dto);
+    }
+
     [HttpPost("listings/{listingId:guid}/messages")]
     public async Task<IActionResult> SendToListing(Guid listingId, [FromBody] SendMessageRequest request, CancellationToken cancellationToken)
     {
@@ -108,6 +137,14 @@ public class ConversationsController : ControllerBase
 
     private async Task<IActionResult> AddMessageAsync(Guid conversationId, Guid userId, string content, CancellationToken cancellationToken)
     {
+        var isClosed = await _context.Conversations
+            .Where(c => c.Id == conversationId)
+            .Select(c => c.IsClosed)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (isClosed)
+            throw new AppException("Chat is closed");
+
         _context.Messages.Add(new Message
         {
             ConversationId = conversationId,
@@ -164,7 +201,7 @@ public class ConversationsController : ControllerBase
         if (conversationId != Guid.Empty)
             return conversationId;
 
-        var conversation = new Conversation { ListingId = listingId };
+        var conversation = new Conversation { ListingId = listingId, OpenedAt = DateTime.UtcNow };
         _context.Conversations.Add(conversation);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -192,7 +229,11 @@ public class ConversationsController : ControllerBase
         Guid.Empty,
         listingId,
         null,
+        null,
         listingTitle,
+        DateTime.UtcNow,
+        false,
+        null,
         Array.Empty<ParticipantDto>(),
         Array.Empty<MessageDto>());
 
@@ -200,7 +241,11 @@ public class ConversationsController : ControllerBase
         conversation.Id,
         conversation.ListingId,
         conversation.OrderId,
+        conversation.Listing?.SellerId,
         conversation.Listing?.Title,
+        conversation.OpenedAt,
+        conversation.IsClosed,
+        conversation.ClosedAt,
         conversation.Participants.Select(p => new ParticipantDto(p.UserId, p.User?.Username ?? string.Empty)).ToList(),
         conversation.Messages.Where(m => !m.IsDeleted).OrderBy(m => m.CreatedAt).Select(m =>
             new MessageDto(m.Id, m.SenderId, m.Sender?.Username ?? string.Empty, m.Content, m.CreatedAt)).ToList());
@@ -211,7 +256,11 @@ public record ConversationDto(
     Guid Id,
     Guid? ListingId,
     Guid? OrderId,
+    Guid? SellerId,
     string? ListingTitle,
+    DateTime OpenedAt,
+    bool IsClosed,
+    DateTime? ClosedAt,
     IReadOnlyList<ParticipantDto> Participants,
     IReadOnlyList<MessageDto> Messages);
 public record ParticipantDto(Guid UserId, string Username);

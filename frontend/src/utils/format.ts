@@ -14,6 +14,15 @@ export const formatPrice = (price: number, currency = siteCurrency) => {
 export const formatDate = (date: string) =>
   new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date))
 
+export const formatDateTime = (date: string) =>
+  new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date))
+
 export const getErrorMessage = (error: unknown, fallback = 'Произошла ошибка') => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const data = (error as { response?: { data?: { detail?: string } } }).response?.data

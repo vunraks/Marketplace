@@ -8,6 +8,11 @@ public class Conversation : BaseEntity
     public Listing? Listing { get; set; }
     public Guid? OrderId { get; set; }
     public Order? Order { get; set; }
+    public DateTime OpenedAt { get; set; } = DateTime.UtcNow;
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public Guid? ClosedById { get; set; }
+    public User? ClosedBy { get; set; }
 
     public ICollection<ConversationParticipant> Participants { get; set; } = new List<ConversationParticipant>();
     public ICollection<Message> Messages { get; set; } = new List<Message>();

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send'
+import LockIcon from '@mui/icons-material/Lock'
 import { Link as RouterLink } from 'react-router-dom'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
 import { useAppSelector } from '../store/hooks'
-import { formatDate, getErrorMessage } from '../utils/format'
+import { formatDateTime, getErrorMessage } from '../utils/format'
 
 const emptyGuid = '00000000-0000-0000-0000-000000000000'
 
@@ -65,7 +66,7 @@ export default function ChatsPage() {
   }, [])
 
   const send = async () => {
-    if (!isRealConversation(active) || !message.trim()) return
+    if (!isRealConversation(active) || active?.isClosed || !message.trim()) return
     setBusy(true)
     setError('')
     try {
@@ -80,9 +81,25 @@ export default function ChatsPage() {
     }
   }
 
+  const closeChat = async () => {
+    if (!isRealConversation(active)) return
+    setBusy(true)
+    setError('')
+    try {
+      const { data } = await commerceApi.closeConversation(active!.id)
+      setActive(data)
+      setConversations((items) => upsertConversation(items, data))
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось закрыть чат'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading) return <LoadingSpinner />
 
   const activeOther = active ? otherParticipant(active, user?.id) : undefined
+  const canCloseActive = Boolean(active && !active.isClosed && active.sellerId?.toLowerCase() === user?.id?.toLowerCase())
 
   return (
     <Box>
@@ -112,8 +129,12 @@ export default function ChatsPage() {
                       {other?.username || 'Собеседник'}
                     </Typography>
                     <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
+                      Открыт: {formatDateTime(conversation.openedAt)}
+                    </Typography>
+                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
                       {last?.content || 'Нет сообщений'}
                     </Typography>
+                    {conversation.isClosed && <Chip label="Закрыт" size="small" sx={{ mt: 0.75 }} />}
                   </Button>
                 )
               })}
@@ -125,17 +146,37 @@ export default function ChatsPage() {
           {active ? (
             <>
               <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-                <Typography fontWeight={800} sx={{ mb: 0.5 }}>
-                  {active.listingTitle || 'Товар'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {activeOther?.username || 'Собеседник'}
-                </Typography>
-                {active.listingId && (
-                  <Button component={RouterLink} to={`/listing/${active.listingId}`} size="small">
-                    Открыть товар
-                  </Button>
-                )}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                  <Box>
+                    <Typography fontWeight={800} sx={{ mb: 0.5 }}>
+                      {active.listingTitle || 'Товар'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {activeOther?.username || 'Собеседник'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Открыт: {formatDateTime(active.openedAt)}
+                    </Typography>
+                    {active.closedAt && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Закрыт: {formatDateTime(active.closedAt)}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                    <Chip label={active.isClosed ? 'Закрыт' : 'Открыт'} color={active.isClosed ? 'default' : 'success'} size="small" />
+                    {active.listingId && (
+                      <Button component={RouterLink} to={`/listing/${active.listingId}`} size="small">
+                        Открыть товар
+                      </Button>
+                    )}
+                    {canCloseActive && (
+                      <Button size="small" color="warning" variant="outlined" startIcon={<LockIcon />} disabled={busy} onClick={closeChat}>
+                        Завершить чат
+                      </Button>
+                    )}
+                  </Stack>
+                </Stack>
               </Box>
               <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, p: 2, overflow: 'auto' }}>
                 {active.messages.length === 0 ? (
@@ -145,7 +186,7 @@ export default function ChatsPage() {
                   return (
                     <Box key={item.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
                       <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)' }}>
-                        <Typography variant="caption" color="text.secondary">{item.senderUsername} · {formatDate(item.createdAt)}</Typography>
+                        <Typography variant="caption" color="text.secondary">{item.senderUsername} · {formatDateTime(item.createdAt)}</Typography>
                         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{item.content}</Typography>
                       </Box>
                     </Box>
@@ -155,9 +196,10 @@ export default function ChatsPage() {
               <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <TextField
                   fullWidth
-                  placeholder="Написать..."
+                  placeholder={active.isClosed ? 'Чат закрыт продавцом' : 'Написать...'}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  disabled={active.isClosed}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -165,10 +207,15 @@ export default function ChatsPage() {
                     }
                   }}
                 />
-                <Button variant="contained" onClick={send} disabled={busy || !message.trim()}>
+                <Button variant="contained" onClick={send} disabled={busy || active.isClosed || !message.trim()}>
                   <SendIcon />
                 </Button>
               </Box>
+              {active.isClosed && (
+                <Alert severity="info" icon={<LockIcon />} sx={{ borderRadius: 0 }}>
+                  Чат закрыт продавцом. Если покупатель снова купит этот товар, чат откроется автоматически.
+                </Alert>
+              )}
             </>
           ) : (
             <Stack sx={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
