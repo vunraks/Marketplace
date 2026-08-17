@@ -209,9 +209,41 @@ export default function ProfilePage() {
             <Typography color="text.secondary" fontWeight={700}>Страховой депозит</Typography>
             <Typography fontWeight={800} sx={{ mt: 0.5 }}>{profile.username}</Typography>
             <Typography variant="h5" color="error.main" sx={{ mt: 2 }}>{profile.virtualBalance.toLocaleString('ru-RU')} VT</Typography>
-            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-              <Button fullWidth variant="contained" startIcon={<AddCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('topup')}>Пополнить</Button>
-              <Button fullWidth variant="outlined" startIcon={<RemoveCircleOutlineIcon />} disabled={busy || !isAdmin} onClick={() => adjustMyWallet('withdraw')}>Снять</Button>
+            <Stack direction={{ xs: 'column', sm: 'row', md: 'column' }} spacing={1} sx={{ mt: 2 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<AddCircleOutlineIcon />}
+                disabled={busy || !isAdmin}
+                onClick={() => adjustMyWallet('topup')}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: 'center',
+                  '&.Mui-disabled': {
+                    color: 'rgba(255,255,255,0.82)',
+                    bgcolor: 'rgba(101,212,110,0.58)',
+                  },
+                }}
+              >
+                Пополнить
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<RemoveCircleOutlineIcon />}
+                disabled={busy || !isAdmin}
+                onClick={() => adjustMyWallet('withdraw')}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: 'center',
+                  '&.Mui-disabled': {
+                    color: 'rgba(255,255,255,0.62)',
+                    borderColor: 'rgba(255,255,255,0.16)',
+                  },
+                }}
+              >
+                Снять
+              </Button>
             </Stack>
             {!isAdmin && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
@@ -238,9 +270,20 @@ export default function ProfilePage() {
                   if (e.key === 'Enter') void redeemPromo()
                 }}
               />
-              <Button variant="contained" disabled={busy || !promoCode.trim()} onClick={redeemPromo}>
-                Активировать
-              </Button>
+                <Button
+                  variant="contained"
+                  disabled={busy || !promoCode.trim()}
+                  onClick={redeemPromo}
+                  sx={{
+                    minHeight: 48,
+                    '&.Mui-disabled': {
+                      color: 'rgba(255,255,255,0.82)',
+                      bgcolor: 'rgba(101,212,110,0.58)',
+                    },
+                  }}
+                >
+                  Активировать
+                </Button>
             </Stack>
           </Paper>
 
@@ -327,7 +370,21 @@ export default function ProfilePage() {
                 />
               </Stack>
               <Stack direction="row" spacing={1} sx={{ mt: 2, ml: { xs: 0, sm: 7 } }}>
-                <Button variant="contained" disabled={busy || !postText.trim()} onClick={publishPost}>Опубликовать</Button>
+                <Button
+                  variant="contained"
+                  disabled={busy || !postText.trim()}
+                  onClick={publishPost}
+                  sx={{
+                    minHeight: 50,
+                    px: 3,
+                    '&.Mui-disabled': {
+                      color: 'rgba(255,255,255,0.82)',
+                      bgcolor: 'rgba(101,212,110,0.58)',
+                    },
+                  }}
+                >
+                  Опубликовать
+                </Button>
                 <Button variant="outlined" disabled>Добавить голосование</Button>
               </Stack>
             </Box>
