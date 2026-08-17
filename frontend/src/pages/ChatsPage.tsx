@@ -107,7 +107,7 @@ export default function ChatsPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2, alignItems: 'stretch' }}>
-        <Paper sx={{ p: 1.5, height: { md: 560 }, overflow: 'auto' }}>
+        <Paper sx={{ p: 1.5, height: { xs: 620, md: 'min(760px, calc(100vh - 180px))' }, minHeight: { md: 680 }, overflow: 'auto' }}>
           {conversations.length === 0 ? (
             <Typography color="text.secondary">Пока нет диалогов</Typography>
           ) : (
@@ -142,7 +142,7 @@ export default function ChatsPage() {
           )}
         </Paper>
 
-        <Paper sx={{ height: { xs: 520, md: 560 }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Paper sx={{ height: { xs: 620, md: 'min(760px, calc(100vh - 180px))' }, minHeight: { md: 680 }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {active ? (
             <>
               <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
