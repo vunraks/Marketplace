@@ -68,7 +68,10 @@ public class ConversationsController : ControllerBase
             return Ok(ToDto(sellerConversation));
         }
 
-        var conversationId = await GetOrCreateBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        var conversationId = await FindBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        if (conversationId == Guid.Empty)
+            return Ok(EmptyConversationDto(listingId, listing.Title));
+
         var conversation = await LoadConversationAsync(conversationId, cancellationToken);
         return Ok(ToDto(conversation));
     }
@@ -131,11 +134,36 @@ public class ConversationsController : ControllerBase
         if (userId == listing.SellerId)
             throw new AppException("Open the buyer conversation from Chats to reply");
 
-        var conversationId = await GetOrCreateBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
-        return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
+        var activeOrderId = await _context.Orders
+            .Where(o =>
+                o.ListingId == listingId &&
+                o.BuyerId == userId &&
+                (o.Status == OrderStatus.Created || o.Status == OrderStatus.Completed || o.Status == OrderStatus.Disputed))
+            .OrderByDescending(o => o.CreatedAt)
+            .Select(o => (Guid?)o.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var openResult = await GetOrOpenBuyerSellerConversationAsync(listingId, userId, listing.SellerId, activeOrderId, cancellationToken);
+        var openedNotification = openResult.WasOpened
+            ? new Notification
+            {
+                UserId = listing.SellerId,
+                Type = "chat_opened",
+                Title = "Чат открыт",
+                Body = $"Покупатель открыл чат по товару \"{listing.Title}\" {openResult.OpenedAt:dd.MM.yyyy HH:mm} UTC.",
+                DataJson = $$"""{"conversationId":"{{openResult.ConversationId}}","listingId":"{{listingId}}"}"""
+            }
+            : null;
+
+        return await AddMessageAsync(openResult.ConversationId, userId, request.Content.Trim(), cancellationToken, openedNotification);
     }
 
-    private async Task<IActionResult> AddMessageAsync(Guid conversationId, Guid userId, string content, CancellationToken cancellationToken)
+    private async Task<IActionResult> AddMessageAsync(
+        Guid conversationId,
+        Guid userId,
+        string content,
+        CancellationToken cancellationToken,
+        Notification? extraNotification = null)
     {
         var isClosed = await _context.Conversations
             .Where(c => c.Id == conversationId)
@@ -172,6 +200,9 @@ public class ConversationsController : ControllerBase
             DataJson = $$"""{"conversationId":"{{conversationId}}","listingId":"{{listingId}}"}"""
         }).ToList();
 
+        if (extraNotification is not null)
+            notifications.Add(extraNotification);
+
         _context.Notifications.AddRange(notifications);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -183,13 +214,13 @@ public class ConversationsController : ControllerBase
         return Ok(dto);
     }
 
-    private async Task<Guid> GetOrCreateBuyerSellerConversationIdAsync(
+    private async Task<Guid> FindBuyerSellerConversationIdAsync(
         Guid listingId,
         Guid buyerId,
         Guid sellerId,
         CancellationToken cancellationToken)
     {
-        var conversationId = await _context.Conversations
+        return await _context.Conversations
             .Where(c =>
                 c.ListingId == listingId &&
                 c.Participants.Any(p => p.UserId == buyerId) &&
@@ -197,20 +228,49 @@ public class ConversationsController : ControllerBase
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
+    }
 
-        if (conversationId != Guid.Empty)
-            return conversationId;
+    private async Task<ConversationOpenResult> GetOrOpenBuyerSellerConversationAsync(
+        Guid listingId,
+        Guid buyerId,
+        Guid sellerId,
+        Guid? orderId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var conversation = await _context.Conversations
+            .FirstOrDefaultAsync(c =>
+                c.ListingId == listingId &&
+                c.Participants.Any(p => p.UserId == buyerId) &&
+                c.Participants.Any(p => p.UserId == sellerId),
+                cancellationToken);
 
-        var conversation = new Conversation { ListingId = listingId, OpenedAt = DateTime.UtcNow };
-        _context.Conversations.Add(conversation);
+        if (conversation is not null)
+        {
+            var wasOpened = conversation.IsClosed;
+            conversation.OrderId ??= orderId;
+            if (conversation.IsClosed)
+            {
+                conversation.IsClosed = false;
+                conversation.OpenedAt = now;
+                conversation.ClosedAt = null;
+                conversation.ClosedById = null;
+                conversation.UpdatedAt = now;
+            }
+
+            return new ConversationOpenResult(conversation.Id, wasOpened, conversation.OpenedAt);
+        }
+
+        var newConversation = new Conversation { ListingId = listingId, OrderId = orderId, OpenedAt = now };
+        _context.Conversations.Add(newConversation);
         await _context.SaveChangesAsync(cancellationToken);
 
         _context.ConversationParticipants.AddRange(
-            new ConversationParticipant { ConversationId = conversation.Id, UserId = buyerId },
-            new ConversationParticipant { ConversationId = conversation.Id, UserId = sellerId });
+            new ConversationParticipant { ConversationId = newConversation.Id, UserId = buyerId },
+            new ConversationParticipant { ConversationId = newConversation.Id, UserId = sellerId });
         await _context.SaveChangesAsync(cancellationToken);
 
-        return conversation.Id;
+        return new ConversationOpenResult(newConversation.Id, true, newConversation.OpenedAt);
     }
 
     private async Task<Conversation> LoadConversationAsync(Guid conversationId, CancellationToken cancellationToken)
@@ -265,3 +325,4 @@ public record ConversationDto(
     IReadOnlyList<MessageDto> Messages);
 public record ParticipantDto(Guid UserId, string Username);
 public record MessageDto(Guid Id, Guid SenderId, string SenderUsername, string Content, DateTime CreatedAt);
+public record ConversationOpenResult(Guid ConversationId, bool WasOpened, DateTime OpenedAt);

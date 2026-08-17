@@ -49,35 +49,7 @@ public class OrdersController : ControllerBase
             .FirstOrDefaultAsync(cancellationToken);
 
         if (existingOrder is not null)
-        {
-            var existingConversation = await GetOrCreateConversationAsync(listing.Id, existingOrder.Id, buyerId, listing.SellerId, cancellationToken);
-            existingConversation.OrderId = existingOrder.Id;
-            var reopenedAt = DateTime.UtcNow;
-            existingConversation.IsClosed = false;
-            existingConversation.OpenedAt = reopenedAt;
-            existingConversation.ClosedAt = null;
-            existingConversation.ClosedById = null;
-            existingConversation.UpdatedAt = reopenedAt;
-
-            var reopenNotification = new Notification
-            {
-                UserId = listing.SellerId,
-                Type = "chat_reopened",
-                Title = "Чат снова открыт",
-                Body = $"Покупатель вернулся к заказу {existingOrder.OrderNumber}. Чат открыт {reopenedAt:dd.MM.yyyy HH:mm} UTC.",
-                DataJson = $$"""{"orderId":"{{existingOrder.Id}}","listingId":"{{listing.Id}}"}"""
-            };
-
-            _context.Notifications.Add(reopenNotification);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            var reopenedConversation = await LoadConversationForRealtimeAsync(existingConversation.Id, cancellationToken);
-            if (reopenedConversation is not null)
-                await _realtime.SendConversationUpdatedAsync(reopenedConversation.Participants.Select(p => p.UserId), ToConversationDto(reopenedConversation), cancellationToken);
-
-            await _realtime.SendNotificationAsync(reopenNotification, cancellationToken);
             return Ok(ToDto(existingOrder));
-        }
 
         if (listing.Status != ListingStatus.Active)
             throw new AppException("Listing is not available for purchase");
@@ -107,31 +79,18 @@ public class OrdersController : ControllerBase
             Comment = "Order created, payment is pending buyer confirmation"
         });
 
-        var conversation = await GetOrCreateConversationAsync(listing.Id, null, buyerId, listing.SellerId, cancellationToken);
-        conversation.Order = order;
-        conversation.IsClosed = false;
-        conversation.OpenedAt = DateTime.UtcNow;
-        conversation.ClosedAt = null;
-        conversation.ClosedById = null;
-
         var notification = new Notification
         {
             UserId = listing.SellerId,
             Type = "order_created",
-            Title = "Новый заказ и открытый чат",
-            Body = $"Покупатель создал заказ {order.OrderNumber}. Чат открыт {conversation.OpenedAt:dd.MM.yyyy HH:mm} UTC.",
+            Title = "Новый заказ",
+            Body = $"Покупатель создал заказ {order.OrderNumber}. Чат откроется, когда покупатель напишет продавцу.",
             DataJson = $$"""{"orderId":"{{order.Id}}","listingId":"{{listing.Id}}"}"""
         };
 
         _context.Orders.Add(order);
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync(cancellationToken);
-
-        var updatedConversation = await LoadConversationForRealtimeAsync(conversation.Id, cancellationToken);
-
-        if (updatedConversation is not null)
-            await _realtime.SendConversationUpdatedAsync(updatedConversation.Participants.Select(p => p.UserId), ToConversationDto(updatedConversation), cancellationToken);
-
         await _realtime.SendNotificationAsync(notification, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, ToDto(order));
@@ -267,54 +226,6 @@ public class OrdersController : ControllerBase
         return Ok(order is null ? null : ToDto(order));
     }
 
-    private async Task<Conversation> GetOrCreateConversationAsync(Guid listingId, Guid? orderId, Guid buyerId, Guid sellerId, CancellationToken cancellationToken)
-    {
-        var conversation = await _context.Conversations
-            .Include(c => c.Participants)
-            .FirstOrDefaultAsync(c =>
-                c.ListingId == listingId &&
-                c.Participants.Any(p => p.UserId == buyerId) &&
-                c.Participants.Any(p => p.UserId == sellerId),
-                cancellationToken);
-
-        if (conversation is not null)
-        {
-            conversation.OrderId ??= orderId;
-            conversation.IsClosed = false;
-            conversation.OpenedAt = DateTime.UtcNow;
-            conversation.ClosedAt = null;
-            conversation.ClosedById = null;
-            conversation.UpdatedAt = DateTime.UtcNow;
-            return conversation;
-        }
-
-        conversation = new Conversation
-        {
-            ListingId = listingId,
-            OrderId = orderId,
-            OpenedAt = DateTime.UtcNow,
-            Participants =
-            {
-                new ConversationParticipant { UserId = buyerId },
-                new ConversationParticipant { UserId = sellerId }
-            }
-        };
-
-        _context.Conversations.Add(conversation);
-        return conversation;
-    }
-
-    private async Task<Conversation?> LoadConversationForRealtimeAsync(Guid conversationId, CancellationToken cancellationToken)
-    {
-        return await _context.Conversations
-            .AsNoTracking()
-            .Include(c => c.Participants).ThenInclude(p => p.User)
-            .Include(c => c.Messages.OrderBy(m => m.CreatedAt)).ThenInclude(m => m.Sender)
-            .Include(c => c.Listing)
-            .AsSplitQuery()
-            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
-    }
-
     private static OrderDto ToDto(Order order) => new(
         order.Id,
         order.OrderNumber,
@@ -324,27 +235,6 @@ public class OrdersController : ControllerBase
         order.Currency,
         order.Status.ToString(),
         order.CreatedAt);
-
-    private static object ToConversationDto(Conversation conversation) => new
-    {
-        conversation.Id,
-        conversation.ListingId,
-        conversation.OrderId,
-        SellerId = conversation.Listing?.SellerId,
-        ListingTitle = conversation.Listing?.Title,
-        conversation.OpenedAt,
-        conversation.IsClosed,
-        conversation.ClosedAt,
-        Participants = conversation.Participants.Select(p => new { p.UserId, Username = p.User?.Username ?? string.Empty }).ToList(),
-        Messages = conversation.Messages.Where(m => !m.IsDeleted).OrderBy(m => m.CreatedAt).Select(m => new
-        {
-            m.Id,
-            m.SenderId,
-            SenderUsername = m.Sender?.Username ?? string.Empty,
-            m.Content,
-            m.CreatedAt
-        }).ToList()
-    };
 }
 
 public record CreateOrderRequest(Guid ListingId, int Quantity, string? BuyerNote);
