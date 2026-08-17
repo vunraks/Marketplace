@@ -34,10 +34,12 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation, ListingDetail, Order, SellerReview, Wallet } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
 import { assetUrl, formatDateTime, formatPrice, getErrorMessage, imagePlaceholder } from '../utils/format'
-import { useAppSelector } from '../store/hooks'
+import { fetchProfile } from '../store/authSlice'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const dispatch = useAppDispatch()
   const { user, isAuthenticated } = useAppSelector((s) => s.auth)
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [wallet, setWallet] = useState<Wallet | null>(null)
@@ -168,6 +170,7 @@ export default function ListingDetailPage() {
       setCurrentOrder(data)
       const walletResponse = await commerceApi.getWallet()
       setWallet(walletResponse.data)
+      await dispatch(fetchProfile())
       const listingResponse = await listingsApi.getById(data.listingId)
       setListing(listingResponse.data)
       setNotice('Товар подтверждён. Баланс списан, теперь можно оставить отзыв.')
