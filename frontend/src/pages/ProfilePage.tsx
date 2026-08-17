@@ -25,7 +25,7 @@ import { commerceApi } from '../api/commerceApi'
 import { promoCodesApi } from '../api/promoCodesApi'
 import { usersApi } from '../api/usersApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { fetchProfile } from '../store/authSlice'
+import { fetchProfile, setVirtualBalance } from '../store/authSlice'
 import type { ProfilePost } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
 
@@ -129,6 +129,7 @@ export default function ProfilePage() {
       const { data } = await promoCodesApi.redeem(code)
       setPromoCode('')
       setNotice(`Промокод ${data.code} активирован: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
+      dispatch(setVirtualBalance(data.balance))
       await dispatch(fetchProfile())
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось активировать промокод'))

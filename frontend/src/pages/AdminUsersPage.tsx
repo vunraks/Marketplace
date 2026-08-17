@@ -23,11 +23,13 @@ import { usersApi } from '../api/usersApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { AdminUser } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
-import { useAppSelector } from '../store/hooks'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { setVirtualBalance } from '../store/authSlice'
 
 const managedRoles = ['User', 'Seller', 'Moderator']
 
 export default function AdminUsersPage() {
+  const dispatch = useAppDispatch()
   const currentUser = useAppSelector((s) => s.auth.user)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,6 +105,9 @@ export default function AdminUsersPage() {
     try {
       const { data } = await usersApi.adjustAdminUserBalance(user.id, direction === 'add' ? amount : -amount)
       replaceUser(data)
+      if (currentUser?.id === data.id) {
+        dispatch(setVirtualBalance(data.virtualBalance))
+      }
       setBalanceAmounts((current) => ({ ...current, [user.id]: '' }))
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось изменить баланс пользователя'))

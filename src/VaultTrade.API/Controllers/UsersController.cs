@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VaultTrade.API.Extensions;
+using VaultTrade.API.Services;
 using VaultTrade.Application.DTOs.Users;
 using VaultTrade.Application.Interfaces;
+using VaultTrade.Domain.Entities;
+using VaultTrade.Infrastructure.Data;
 
 namespace VaultTrade.API.Controllers;
 
@@ -11,8 +14,15 @@ namespace VaultTrade.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly AppDbContext _context;
+    private readonly RealtimeNotifier _realtime;
 
-    public UsersController(IUserService userService) => _userService = userService;
+    public UsersController(IUserService userService, AppDbContext context, RealtimeNotifier realtime)
+    {
+        _userService = userService;
+        _context = context;
+        _realtime = realtime;
+    }
 
     [HttpGet("me")]
     [Authorize]
@@ -69,6 +79,21 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> AdjustBalance(Guid id, [FromBody] AdjustUserBalanceRequest request, CancellationToken cancellationToken)
     {
         var user = await _userService.AdjustBalanceAsync(id, request, cancellationToken);
+        var notification = new Notification
+        {
+            UserId = id,
+            Type = "wallet_adjusted",
+            Title = "Баланс обновлён",
+            Body = request.Amount >= 0
+                ? $"Администратор начислил {request.Amount:N0} VT."
+                : $"Администратор снял {Math.Abs(request.Amount):N0} VT.",
+            DataJson = $$"""{"amount":{{request.Amount}},"balance":{{user.VirtualBalance}}}"""
+        };
+
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync(cancellationToken);
+        await _realtime.SendNotificationAsync(notification, cancellationToken);
+
         return Ok(user);
     }
 

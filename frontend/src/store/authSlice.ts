@@ -102,6 +102,10 @@ const authSlice = createSlice({
       state.user = action.payload
       state.isAuthenticated = true
     },
+    setVirtualBalance: (state, action: PayloadAction<number>) => {
+      if (state.user) state.user.virtualBalance = action.payload
+      if (state.profile) state.profile.virtualBalance = action.payload
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -155,7 +159,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { logout, clearError, setUser } = authSlice.actions
+export const { logout, clearError, setUser, setVirtualBalance } = authSlice.actions
 export default authSlice.reducer
 
 export const selectIsSeller = (state: { auth: AuthState }) =>

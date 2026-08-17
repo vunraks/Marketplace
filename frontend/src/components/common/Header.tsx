@@ -24,6 +24,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
+import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchProfile, logout } from '../../store/authSlice'
@@ -48,6 +49,7 @@ export default function Header() {
     return onNotificationReceived((notification) => {
       if (
         notification.type === 'promo_bonus' ||
+        notification.type === 'wallet_adjusted' ||
         notification.type === 'order_completed' ||
         notification.type === 'dispute_resolved'
       ) {
@@ -125,6 +127,11 @@ export default function Header() {
                 {isSeller && (
                   <MenuItem component={RouterLink} to="/seller-dashboard" onClick={closeMenu}>
                     <DashboardOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Кабинет продавца
+                  </MenuItem>
+                )}
+                {!isSeller && (
+                  <MenuItem component={RouterLink} to="/become-seller" onClick={closeMenu}>
+                    <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Стать продавцом
                   </MenuItem>
                 )}
                 <MenuItem component={RouterLink} to="/chats" onClick={closeMenu}>
