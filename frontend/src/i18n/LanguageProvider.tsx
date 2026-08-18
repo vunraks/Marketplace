@@ -6,7 +6,7 @@ const storageKey = 'vaulttrade-language'
 type LanguageContextValue = {
   language: LanguageCode
   setLanguage: (language: LanguageCode) => void
-  t: (key: TranslationKey) => string
+  t: (key: TranslationKey | string, fallback?: string) => string
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null)
@@ -33,7 +33,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(storageKey, nextLanguage)
       setLanguageState(nextLanguage)
     },
-    t: (key) => translations[language][key] ?? translations.ru[key],
+    t: (key, fallback) => translations[language][key as TranslationKey] ?? translations.ru[key as TranslationKey] ?? fallback ?? key,
   }), [language])
 
   return (

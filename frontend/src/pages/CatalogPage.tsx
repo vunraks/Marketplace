@@ -8,12 +8,14 @@ import ListingCard from '../components/listing/ListingCard'
 import PaginationBar from '../components/common/PaginationBar'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { CategoryTree, ListingCard as ListingCardType } from '../types'
+import { useTranslation } from '../i18n/LanguageProvider'
 
 function flattenCategories(cats: CategoryTree[]): CategoryTree[] {
   return cats.flatMap((c) => [c, ...flattenCategories(c.children ?? [])])
 }
 
 export default function CatalogPage() {
+  const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const [listings, setListings] = useState<ListingCardType[]>([])
   const [categories, setCategories] = useState<CategoryTree[]>([])
@@ -54,30 +56,30 @@ export default function CatalogPage() {
     <>
       <Box className="section-title-row">
         <Box>
-          <Typography variant="h4" fontWeight={800}>Каталог</Typography>
-          <Typography variant="body2" color="text.secondary">Фильтруйте цифровые товары по категории, цене и названию</Typography>
+          <Typography variant="h4" fontWeight={800}>{t('catalogTitle')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('catalogSubtitle')}</Typography>
         </Box>
-        <Chip label={`${listings.length} на странице`} color="primary" variant="outlined" />
+        <Chip label={`${listings.length} ${t('itemsOnPage')}`} color="primary" variant="outlined" />
       </Box>
 
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField fullWidth label="Поиск" value={search} onChange={(e) => updateParam('q', e.target.value)} />
+            <TextField fullWidth label={t('search')} value={search} onChange={(e) => updateParam('q', e.target.value)} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField select fullWidth label="Категория" value={categorySlug} onChange={(e) => updateParam('category', e.target.value)}>
-              <MenuItem value="">Все</MenuItem>
+            <TextField select fullWidth label={t('category')} value={categorySlug} onChange={(e) => updateParam('category', e.target.value)}>
+              <MenuItem value="">{t('all')}</MenuItem>
               {categories.map((c) => (
                 <MenuItem key={c.id} value={c.slug}>{c.name}</MenuItem>
               ))}
             </TextField>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField select fullWidth label="Сортировка" value={sortBy} onChange={(e) => updateParam('sortBy', e.target.value)}>
-              <MenuItem value="createdAt">По дате</MenuItem>
-              <MenuItem value="price">По цене</MenuItem>
-              <MenuItem value="title">По названию</MenuItem>
+            <TextField select fullWidth label={t('sorting')} value={sortBy} onChange={(e) => updateParam('sortBy', e.target.value)}>
+              <MenuItem value="createdAt">{t('byDate')}</MenuItem>
+              <MenuItem value="price">{t('byPrice')}</MenuItem>
+              <MenuItem value="title">{t('byTitle')}</MenuItem>
             </TextField>
           </Grid>
         </Grid>
@@ -87,7 +89,7 @@ export default function CatalogPage() {
         <LoadingSpinner />
       ) : listings.length === 0 ? (
         <Box className="surface-panel">
-          <Typography color="text.secondary">Ничего не найдено</Typography>
+          <Typography color="text.secondary">{t('nothingFound')}</Typography>
         </Box>
       ) : (
         <>

@@ -10,24 +10,24 @@ import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
 import type { CategoryTree, ListingImage } from '../types'
 import { assetUrl, getErrorMessage, imagePlaceholder } from '../utils/format'
+import { useTranslation } from '../i18n/LanguageProvider'
 
-const schema = z.object({
-  categoryId: z.string().min(1, 'Выберите категорию'),
-  title: z.string().min(5, 'Минимум 5 символов').max(200),
-  description: z.string().min(20, 'Минимум 20 символов'),
-  price: z.number({ error: 'Укажите цену' }).min(0, 'Цена не может быть отрицательной'),
-  stockQuantity: z.number({ error: 'Укажите количество' }).int('Только целое число').min(1, 'Минимум 1 шт.'),
-  deliveryInfo: z.string().optional(),
-  tags: z.string().optional(),
-})
-
-type FormData = z.infer<typeof schema>
+type FormData = {
+  categoryId: string
+  title: string
+  description: string
+  price: number
+  stockQuantity: number
+  deliveryInfo?: string
+  tags?: string
+}
 
 function flattenCategories(cats: CategoryTree[]): CategoryTree[] {
   return cats.flatMap((category) => [category, ...flattenCategories(category.children ?? [])])
 }
 
 export default function CreateListingPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams<{ id?: string }>()
   const isEditMode = Boolean(id)
@@ -39,6 +39,16 @@ export default function CreateListingPage() {
   const [files, setFiles] = useState<File[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  const schema = z.object({
+    categoryId: z.string().min(1, t('selectCategory')),
+    title: z.string().min(5, t('min5')).max(200),
+    description: z.string().min(20, t('min20')),
+    price: z.number({ error: t('priceRequired') }).min(0, t('priceNotNegative')),
+    stockQuantity: z.number({ error: t('stockRequired') }).int(t('integerOnly')).min(1, t('minOneItem')),
+    deliveryInfo: z.string().optional(),
+    tags: z.string().optional(),
+  })
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { categoryId: '', title: '', description: '', price: 0, stockQuantity: 1, deliveryInfo: '', tags: '' },
@@ -48,8 +58,8 @@ export default function CreateListingPage() {
     categoriesApi
       .getTree()
       .then((response) => setCategories(flattenCategories(Array.isArray(response.data) ? response.data : [])))
-      .catch(() => setError('Не удалось загрузить категории'))
-  }, [])
+      .catch(() => setError(t('loadCategoriesFail')))
+  }, [t])
 
   useEffect(() => {
     if (!id) return
@@ -71,9 +81,9 @@ export default function CreateListingPage() {
         })
         setExistingImages(listing.images)
       })
-      .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить объявление')))
+      .catch((e) => setError(getErrorMessage(e, t('loadListingFail'))))
       .finally(() => setLoading(false))
-  }, [id, reset])
+  }, [id, reset, t])
 
   useEffect(() => {
     return () => {
@@ -112,7 +122,7 @@ export default function CreateListingPage() {
 
       navigate(`/listing/${finalListing.id}`)
     } catch (e) {
-      setError(getErrorMessage(e, isEditMode ? 'Не удалось сохранить объявление' : 'Не удалось создать объявление'))
+      setError(getErrorMessage(e, isEditMode ? t('saveListingFail') : t('createListingFail')))
     } finally {
       setSubmitting(false)
     }
@@ -121,7 +131,7 @@ export default function CreateListingPage() {
   if (loading) {
     return (
       <Paper sx={{ p: 4, maxWidth: 760, mx: 'auto' }}>
-        <Typography>Загрузка объявления...</Typography>
+        <Typography>{t('loadingListing')}</Typography>
       </Paper>
     )
   }
@@ -129,29 +139,29 @@ export default function CreateListingPage() {
   return (
     <Paper sx={{ p: { xs: 2.5, md: 4 }, maxWidth: 760, mx: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
       <Typography variant="h4" fontWeight={800} gutterBottom>
-        {isEditMode ? 'Редактировать объявление' : 'Новое объявление'}
+        {isEditMode ? t('editListing') : t('newListing')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
-        После сохранения объявление снова попадет на модерацию.
+        {t('moderationAfterSave')}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
-          <TextField select fullWidth label="Категория" {...register('categoryId')} error={!!errors.categoryId} helperText={errors.categoryId?.message}>
+          <TextField select fullWidth label={t('category')} {...register('categoryId')} error={!!errors.categoryId} helperText={errors.categoryId?.message}>
             {categories.map((category) => (
               <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
             ))}
           </TextField>
-          <TextField fullWidth label="Название" {...register('title')} error={!!errors.title} helperText={errors.title?.message} />
-          <TextField fullWidth label="Описание" multiline rows={7} {...register('description')} error={!!errors.description} helperText={errors.description?.message} />
+          <TextField fullWidth label={t('title')} {...register('title')} error={!!errors.title} helperText={errors.title?.message} />
+          <TextField fullWidth label={t('description')} multiline rows={7} {...register('description')} error={!!errors.description} helperText={errors.description?.message} />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField fullWidth label="Цена за 1 шт. (VT)" type="number" {...register('price', { valueAsNumber: true })} error={!!errors.price} helperText={errors.price?.message} />
-            <TextField fullWidth label="Количество, шт." type="number" {...register('stockQuantity', { valueAsNumber: true })} error={!!errors.stockQuantity} helperText={errors.stockQuantity?.message} />
+            <TextField fullWidth label={t('pricePerItem')} type="number" {...register('price', { valueAsNumber: true })} error={!!errors.price} helperText={errors.price?.message} />
+            <TextField fullWidth label={t('quantityPieces')} type="number" {...register('stockQuantity', { valueAsNumber: true })} error={!!errors.stockQuantity} helperText={errors.stockQuantity?.message} />
           </Stack>
-          <TextField fullWidth label="Информация о выдаче/доставке" {...register('deliveryInfo')} />
-          <TextField fullWidth label="Теги через запятую" {...register('tags')} />
+          <TextField fullWidth label={t('deliveryInfo')} {...register('deliveryInfo')} />
+          <TextField fullWidth label={t('tagsComma')} {...register('tags')} />
 
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.025)' }}>
             <Stack spacing={2}>
@@ -162,7 +172,7 @@ export default function CreateListingPage() {
                       key={image.id}
                       component="img"
                       src={assetUrl(image.url) ?? imagePlaceholder}
-                      alt={image.altText ?? 'Изображение'}
+                      alt={image.altText ?? t('image')}
                       onError={(event) => {
                         event.currentTarget.src = imagePlaceholder
                       }}
@@ -175,23 +185,23 @@ export default function CreateListingPage() {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                 <Box sx={{ width: { xs: '100%', sm: 180 }, aspectRatio: '16 / 10', borderRadius: 1.5, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center' }}>
                   {previewUrl ? (
-                    <Box component="img" src={previewUrl} alt="Превью" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Box component="img" src={previewUrl} alt={t('preview')} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <ImageOutlinedIcon color="primary" />
                   )}
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography fontWeight={800}>Добавить картинки товара</Typography>
+                  <Typography fontWeight={800}>{t('addProductImages')}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    Можно загрузить до 6 новых изображений. Они добавятся к объявлению.
+                    {t('uploadImagesHint')}
                   </Typography>
                   <Button component="label" variant="outlined" startIcon={<ImageOutlinedIcon />}>
-                    Выбрать изображения
+                    {t('chooseImages')}
                     <input hidden type="file" accept="image/*" multiple onChange={(event) => selectFiles(event.target.files)} />
                   </Button>
                   {files.length > 0 && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Выбрано файлов: {files.length}
+                      {t('selectedFiles')}: {files.length}
                     </Typography>
                   )}
                 </Box>
@@ -200,7 +210,7 @@ export default function CreateListingPage() {
           </Paper>
 
           <Button type="submit" variant="contained" size="large" disabled={submitting} startIcon={<SaveOutlinedIcon />}>
-            {submitting ? 'Сохранение...' : isEditMode ? 'Сохранить изменения' : 'Отправить на модерацию'}
+            {submitting ? t('saving') : isEditMode ? t('saveChanges') : t('sendToModeration')}
           </Button>
         </Stack>
       </form>

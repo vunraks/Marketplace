@@ -38,16 +38,10 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchProfile, setVirtualBalance } from '../store/authSlice'
 import type { ProfilePost } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
-
-const statItems = [
-  ['0', 'симпатий'],
-  ['0', 'лайков'],
-  ['0', 'сообщений'],
-  ['0', 'трофеев'],
-  ['0', 'подписок'],
-]
+import { useTranslation } from '../i18n/LanguageProvider'
 
 export default function ProfilePage() {
+  const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const { profile, user } = useAppSelector((s) => s.auth)
   const [posts, setPosts] = useState<ProfilePost[]>([])
@@ -91,13 +85,20 @@ export default function ProfilePage() {
   const isAdmin = user?.roles.includes('Admin') ?? profile.roles.includes('Admin')
   const initials = profile.username.slice(0, 2).toUpperCase()
   const joinedAt = formatDate(profile.createdAt)
+  const statItems = [
+    ['0', t('sympathy')],
+    ['0', t('likes')],
+    ['0', t('messages')],
+    ['0', t('trophies')],
+    ['0', t('subscriptions')],
+  ]
   const primaryRole = profile.roles.includes('Admin')
-    ? 'Администратор'
+    ? t('administrator')
     : profile.roles.includes('Moderator')
-      ? 'Модератор'
+      ? t('moderator')
       : profile.roles.includes('Seller')
-        ? 'Продавец'
-        : 'Пользователь'
+        ? t('seller')
+        : t('userRole')
 
   const openEditProfile = () => {
     setEditValues({
@@ -124,9 +125,9 @@ export default function ProfilePage() {
       })
       await dispatch(fetchProfile())
       setEditOpen(false)
-      setNotice('Профиль обновлён')
+      setNotice(t('profileUpdated'))
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось обновить профиль'))
+      setError(getErrorMessage(e, t('profileUpdateFail')))
     } finally {
       setBusy(false)
     }
@@ -134,12 +135,12 @@ export default function ProfilePage() {
 
   const changePassword = async () => {
     if (passwordValues.newPassword.length < 8) {
-      setError('Новый пароль должен быть минимум 8 символов.')
+      setError(t('newPasswordMin'))
       return
     }
 
     if (passwordValues.newPassword !== passwordValues.confirmPassword) {
-      setError('Пароли не совпадают.')
+      setError(t('passwordsMismatch'))
       return
     }
 
@@ -151,9 +152,9 @@ export default function ProfilePage() {
       setPasswordOpen(false)
       setPasswordValues({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setShowPasswordFields({ currentPassword: false, newPassword: false, confirmPassword: false })
-      setNotice('Пароль изменён. При следующем входе используйте новый пароль.')
+      setNotice(t('passwordChanged'))
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось изменить пароль'))
+      setError(getErrorMessage(e, t('changePasswordFail')))
     } finally {
       setBusy(false)
     }
@@ -161,16 +162,16 @@ export default function ProfilePage() {
 
   const adjustMyWallet = async (direction: 'topup' | 'withdraw') => {
     if (!isAdmin) {
-      setError('Пополнение и снятие виртуальной валюты доступны только администратору.')
+      setError(t('walletAdminOnly'))
       return
     }
 
-    const raw = window.prompt(direction === 'topup' ? 'Сколько VT пополнить?' : 'Сколько VT снять?', '1000')
+    const raw = window.prompt(direction === 'topup' ? t('topUpPrompt') : t('withdrawPrompt'), '1000')
     if (raw === null) return
 
     const amount = Number(raw.replace(',', '.'))
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError('Введите положительную сумму.')
+      setError(t('positiveAmount'))
       return
     }
 
@@ -182,7 +183,7 @@ export default function ProfilePage() {
       else await commerceApi.withdrawWallet(amount)
       await dispatch(fetchProfile())
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось изменить баланс'))
+      setError(getErrorMessage(e, t('balanceChangeFail')))
     } finally {
       setBusy(false)
     }
@@ -191,7 +192,7 @@ export default function ProfilePage() {
   const redeemPromo = async () => {
     const code = promoCode.trim()
     if (!code) {
-      setError('Введите промокод.')
+      setError(t('enterPromoCode'))
       return
     }
 
@@ -201,11 +202,11 @@ export default function ProfilePage() {
     try {
       const { data } = await promoCodesApi.redeem(code)
       setPromoCode('')
-      setNotice(`Промокод ${data.code} активирован: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
+      setNotice(`${t('promoActivated')} ${data.code}: +${data.bonusAmount.toLocaleString('ru-RU')} VT`)
       dispatch(setVirtualBalance(data.balance))
       await dispatch(fetchProfile())
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось активировать промокод'))
+      setError(getErrorMessage(e, t('redeemPromoFail')))
     } finally {
       setBusy(false)
     }
@@ -222,7 +223,7 @@ export default function ProfilePage() {
       setPosts((current) => [data, ...current])
       setPostText('')
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось опубликовать пост'))
+      setError(getErrorMessage(e, t('publishPostFail')))
     } finally {
       setBusy(false)
     }
@@ -231,7 +232,7 @@ export default function ProfilePage() {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Форум / Пользователи / <Box component="span" sx={{ color: 'primary.main' }}>{profile.username}</Box>
+        {t('forum')} / {t('users')} / <Box component="span" sx={{ color: 'primary.main' }}>{profile.username}</Box>
       </Typography>
 
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
@@ -246,15 +247,15 @@ export default function ProfilePage() {
               </Avatar>
             </Box>
             <Stack spacing={1}>
-              <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>Редактировать</Button>
+              <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>{t('edit')}</Button>
               <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy} onClick={() => setPasswordOpen(true)}>
-                Изменить пароль
+                {t('changePassword')}
               </Button>
             </Stack>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>
-            <Typography color="text.secondary" fontWeight={700}>Страховой депозит</Typography>
+            <Typography color="text.secondary" fontWeight={700}>{t('insuranceDeposit')}</Typography>
             <Typography fontWeight={800} sx={{ mt: 0.5 }}>{profile.username}</Typography>
             <Typography variant="h5" color="error.main" sx={{ mt: 2 }}>{profile.virtualBalance.toLocaleString('ru-RU')} VT</Typography>
             <Stack direction={{ xs: 'column', sm: 'row', md: 'column' }} spacing={1} sx={{ mt: 2 }}>
@@ -273,7 +274,7 @@ export default function ProfilePage() {
                   },
                 }}
               >
-                Пополнить
+                {t('topUp')}
               </Button>
               <Button
                 fullWidth
@@ -290,12 +291,12 @@ export default function ProfilePage() {
                   },
                 }}
               >
-                Снять
+                {t('withdraw')}
               </Button>
             </Stack>
             {!isAdmin && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Изменять виртуальную валюту может только администратор.
+                {t('adminWalletOnly')}
               </Typography>
             )}
           </Paper>
@@ -303,10 +304,10 @@ export default function ProfilePage() {
           <Paper sx={{ p: 2, borderRadius: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <LocalOfferOutlinedIcon color="primary" fontSize="small" />
-              <Typography fontWeight={800}>Промокод</Typography>
+              <Typography fontWeight={800}>{t('promoCode')}</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Введите код, чтобы получить бонус на баланс.
+              {t('promoHint')}
             </Typography>
             <Stack spacing={1} sx={{ mt: 1.5 }}>
               <TextField
@@ -333,18 +334,18 @@ export default function ProfilePage() {
                     },
                   }}
                 >
-                  Активировать
+                  {t('activate')}
                 </Button>
             </Stack>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography fontWeight={800}>Заметка о пользователе</Typography>
-              <Chip label="лично" size="small" variant="outlined" />
+              <Typography fontWeight={800}>{t('userNote')}</Typography>
+              <Chip label={t('personal')} size="small" variant="outlined" />
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
-              {profile.bio || 'Здесь можно хранить короткую заметку о сделках и доверии.'}
+              {profile.bio || t('userNoteEmpty')}
             </Typography>
           </Paper>
         </Stack>
@@ -359,16 +360,16 @@ export default function ProfilePage() {
                 </Stack>
                 <Divider sx={{ mb: 2 }} />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 1 }}>
-                  <Typography color="text.secondary">Регистрация:</Typography>
+                  <Typography color="text.secondary">{t('registrationDate')}</Typography>
                   <Typography fontWeight={700}>{joinedAt}</Typography>
                   <Typography color="text.secondary">ID:</Typography>
                   <Typography fontWeight={700}>{profile.id.slice(0, 8)}</Typography>
-                  <Typography color="text.secondary">Статус:</Typography>
+                  <Typography color="text.secondary">{t('status')}</Typography>
                   <Typography fontWeight={700}>{primaryRole}</Typography>
                 </Box>
               </Box>
               <Typography color="text.secondary" sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-                Смотрит объявления на Маркете, только что
+                {t('viewingMarket')}
               </Typography>
             </Stack>
 
@@ -381,11 +382,11 @@ export default function ProfilePage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ mt: 3 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <ForumOutlinedIcon color="primary" />
-                <Typography fontWeight={800}>Темы от {profile.username}</Typography>
+                <Typography fontWeight={800}>{t('topicsBy')} {profile.username}</Typography>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <ShoppingCartOutlinedIcon color="primary" />
-                <Typography fontWeight={800}>Аккаунты на Маркете</Typography>
+                <Typography fontWeight={800}>{t('marketAccounts')}</Typography>
               </Stack>
             </Stack>
 
@@ -402,11 +403,11 @@ export default function ProfilePage() {
 
           <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <Tabs value={0} variant="scrollable" scrollButtons="auto" sx={{ px: 2, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <Tab label="Стена" />
-              <Tab label="Собственные посты" />
-              <Tab label="Лента" />
-              <Tab label="Недавние сообщения" />
-              <Tab label="История блокировок" />
+              <Tab label={t('wall')} />
+              <Tab label={t('ownPosts')} />
+              <Tab label={t('feed')} />
+              <Tab label={t('recentMessages')} />
+              <Tab label={t('blockHistory')} />
             </Tabs>
             <Box sx={{ p: 2.5 }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
@@ -415,7 +416,7 @@ export default function ProfilePage() {
                   fullWidth
                   multiline
                   maxRows={4}
-                  placeholder="Напишите что-нибудь..."
+                  placeholder={t('writeSomething')}
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                 />
@@ -434,9 +435,9 @@ export default function ProfilePage() {
                     },
                   }}
                 >
-                  Опубликовать
+                  {t('publish')}
                 </Button>
-                <Button variant="outlined" disabled>Добавить голосование</Button>
+                <Button variant="outlined" disabled>{t('addPoll')}</Button>
               </Stack>
             </Box>
           </Paper>
@@ -444,7 +445,7 @@ export default function ProfilePage() {
           <Stack spacing={1.25}>
             {posts.length === 0 ? (
               <Paper sx={{ p: 3, borderRadius: 2, textAlign: 'center' }}>
-                <Typography color="text.secondary">На стене пока нет ни одного сообщения</Typography>
+                <Typography color="text.secondary">{t('wallEmpty')}</Typography>
               </Paper>
             ) : posts.map((post) => (
               <Paper key={post.id} sx={{ p: 2, borderRadius: 2 }}>
@@ -476,7 +477,7 @@ export default function ProfilePage() {
       <Dialog open={editOpen} onClose={() => busy ? undefined : setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <EditOutlinedIcon color="primary" />
-          Редактировать профиль
+          {t('editProfile')}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
@@ -491,24 +492,24 @@ export default function ProfilePage() {
               </Box>
               <TextField
                 fullWidth
-                label="Ссылка на аватар"
+                label={t('avatarUrl')}
                 placeholder="https://..."
                 value={editValues.avatarUrl}
                 onChange={(e) => setEditValues((current) => ({ ...current, avatarUrl: e.target.value }))}
-                helperText="Можно вставить ссылку на картинку. Загрузку файла API тоже поддерживает, но здесь быстрее через URL."
+                helperText={t('avatarHelper')}
               />
             </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 fullWidth
-                label="Имя"
+                label={t('firstName')}
                 value={editValues.firstName}
                 onChange={(e) => setEditValues((current) => ({ ...current, firstName: e.target.value }))}
               />
               <TextField
                 fullWidth
-                label="Фамилия"
+                label={t('lastName')}
                 value={editValues.lastName}
                 onChange={(e) => setEditValues((current) => ({ ...current, lastName: e.target.value }))}
               />
@@ -516,7 +517,7 @@ export default function ProfilePage() {
 
             <TextField
               fullWidth
-              label="Телефон"
+              label={t('phone')}
               value={editValues.phone}
               onChange={(e) => setEditValues((current) => ({ ...current, phone: e.target.value }))}
             />
@@ -524,7 +525,7 @@ export default function ProfilePage() {
               fullWidth
               multiline
               minRows={4}
-              label="Заметка о пользователе"
+              label={t('userNote')}
               value={editValues.bio}
               onChange={(e) => setEditValues((current) => ({ ...current, bio: e.target.value }))}
             />
@@ -532,10 +533,10 @@ export default function ProfilePage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button variant="outlined" onClick={() => setEditOpen(false)} disabled={busy}>
-            Отмена
+            {t('cancel')}
           </Button>
           <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={saveProfile} disabled={busy}>
-            Сохранить
+            {t('save')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -543,7 +544,7 @@ export default function ProfilePage() {
       <Dialog open={passwordOpen} onClose={() => busy ? undefined : setPasswordOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <LockResetOutlinedIcon color="primary" />
-          Изменить пароль
+          {t('changePassword')}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={1.75} sx={{ pt: 1 }}>
@@ -551,7 +552,7 @@ export default function ProfilePage() {
               fullWidth
               id="profile-current-password"
               name="profile-current-password"
-              label="Текущий пароль"
+              label={t('currentPassword')}
               type={showPasswordFields.currentPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={passwordValues.currentPassword}
@@ -561,7 +562,7 @@ export default function ProfilePage() {
                   <InputAdornment position="end">
                     <IconButton
                       edge="end"
-                      aria-label={showPasswordFields.currentPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      aria-label={showPasswordFields.currentPassword ? t('hidePassword') : t('showPassword')}
                       onClick={() => setShowPasswordFields((current) => ({ ...current, currentPassword: !current.currentPassword }))}
                     >
                       {showPasswordFields.currentPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
@@ -574,7 +575,7 @@ export default function ProfilePage() {
               fullWidth
               id="profile-new-password"
               name="profile-new-password"
-              label="Новый пароль"
+              label={t('newPassword')}
               type={showPasswordFields.newPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={passwordValues.newPassword}
@@ -584,7 +585,7 @@ export default function ProfilePage() {
                   <InputAdornment position="end">
                     <IconButton
                       edge="end"
-                      aria-label={showPasswordFields.newPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      aria-label={showPasswordFields.newPassword ? t('hidePassword') : t('showPassword')}
                       onClick={() => setShowPasswordFields((current) => ({ ...current, newPassword: !current.newPassword }))}
                     >
                       {showPasswordFields.newPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
@@ -597,7 +598,7 @@ export default function ProfilePage() {
               fullWidth
               id="profile-confirm-password"
               name="profile-confirm-password"
-              label="Повторите новый пароль"
+              label={t('repeatNewPassword')}
               type={showPasswordFields.confirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={passwordValues.confirmPassword}
@@ -607,7 +608,7 @@ export default function ProfilePage() {
                   <InputAdornment position="end">
                     <IconButton
                       edge="end"
-                      aria-label={showPasswordFields.confirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      aria-label={showPasswordFields.confirmPassword ? t('hidePassword') : t('showPassword')}
                       onClick={() => setShowPasswordFields((current) => ({ ...current, confirmPassword: !current.confirmPassword }))}
                     >
                       {showPasswordFields.confirmPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
@@ -620,7 +621,7 @@ export default function ProfilePage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button variant="outlined" onClick={() => setPasswordOpen(false)} disabled={busy}>
-            Отмена
+            {t('cancel')}
           </Button>
           <Button
             variant="contained"
@@ -628,7 +629,7 @@ export default function ProfilePage() {
             onClick={changePassword}
             disabled={busy || !passwordValues.currentPassword || !passwordValues.newPassword || !passwordValues.confirmPassword}
           >
-            Сохранить
+            {t('save')}
           </Button>
         </DialogActions>
       </Dialog>
