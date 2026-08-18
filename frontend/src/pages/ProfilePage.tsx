@@ -11,6 +11,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  InputAdornment,
   Paper,
   Stack,
   Tab,
@@ -27,6 +29,8 @@ import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 import { commerceApi } from '../api/commerceApi'
 import { promoCodesApi } from '../api/promoCodesApi'
 import { usersApi } from '../api/usersApi'
@@ -65,6 +69,11 @@ export default function ProfilePage() {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  })
+  const [showPasswordFields, setShowPasswordFields] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
   })
 
   useEffect(() => {
@@ -141,6 +150,7 @@ export default function ProfilePage() {
       await usersApi.changePassword(passwordValues)
       setPasswordOpen(false)
       setPasswordValues({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setShowPasswordFields({ currentPassword: false, newPassword: false, confirmPassword: false })
       setNotice('Пароль изменён. При следующем входе используйте новый пароль.')
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось изменить пароль'))
@@ -537,26 +547,65 @@ export default function ProfilePage() {
             <TextField
               fullWidth
               label="Текущий пароль"
-              type="password"
+              type={showPasswordFields.currentPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={passwordValues.currentPassword}
               onChange={(e) => setPasswordValues((current) => ({ ...current, currentPassword: e.target.value }))}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      edge="end"
+                      aria-label={showPasswordFields.currentPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      onClick={() => setShowPasswordFields((current) => ({ ...current, currentPassword: !current.currentPassword }))}
+                    >
+                      {showPasswordFields.currentPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               fullWidth
               label="Новый пароль"
-              type="password"
+              type={showPasswordFields.newPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={passwordValues.newPassword}
               onChange={(e) => setPasswordValues((current) => ({ ...current, newPassword: e.target.value }))}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      edge="end"
+                      aria-label={showPasswordFields.newPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      onClick={() => setShowPasswordFields((current) => ({ ...current, newPassword: !current.newPassword }))}
+                    >
+                      {showPasswordFields.newPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               fullWidth
               label="Повторите новый пароль"
-              type="password"
+              type={showPasswordFields.confirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={passwordValues.confirmPassword}
               onChange={(e) => setPasswordValues((current) => ({ ...current, confirmPassword: e.target.value }))}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      edge="end"
+                      aria-label={showPasswordFields.confirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                      onClick={() => setShowPasswordFields((current) => ({ ...current, confirmPassword: !current.confirmPassword }))}
+                    >
+                      {showPasswordFields.confirmPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Stack>
         </DialogContent>
