@@ -66,3 +66,5 @@ public class UpdateProfileRequest
     public string? Bio { get; set; }
     public string? Phone { get; set; }
 }
+
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);

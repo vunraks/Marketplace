@@ -6,6 +6,7 @@ import type {
   ListingCard,
   NotificationsResult,
   Order,
+  OrderHistoryItem,
   SellerDashboard,
   SellerReview,
   Wallet,
@@ -17,6 +18,7 @@ export const commerceApi = {
   withdrawWallet: (amount: number) => axiosClient.post<Wallet>('/wallet/withdraw', { amount }),
   createOrder: (listingId: string, quantity: number, buyerNote?: string) =>
     axiosClient.post<Order>('/orders', { listingId, quantity, buyerNote }),
+  getOrderHistory: () => axiosClient.get<OrderHistoryItem[]>('/orders/mine'),
   getActiveOrderForListing: (listingId: string) => axiosClient.get<Order | null>(`/orders/listings/${listingId}/active`),
   confirmOrder: (orderId: string) => axiosClient.post<Order>(`/orders/${orderId}/confirm`),
   getConversations: () => axiosClient.get<Conversation[]>('/conversations'),

@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using VaultTrade.Application.Common;
 using VaultTrade.Application.DTOs.Auth;
 using VaultTrade.Application.Helpers;
@@ -14,6 +14,7 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IExternalAuthTokenValidator _externalAuthTokenValidator;
+    private readonly IEmailSender _emailSender;
     private readonly IMapper _mapper;
 
     public AuthService(
@@ -21,12 +22,14 @@ public class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
         IExternalAuthTokenValidator externalAuthTokenValidator,
+        IEmailSender emailSender,
         IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _externalAuthTokenValidator = externalAuthTokenValidator;
+        _emailSender = emailSender;
         _mapper = mapper;
     }
 
@@ -168,8 +171,7 @@ public class AuthService : IAuthService
         await _unitOfWork.PasswordResetTokens.AddAsync(resetToken, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // TODO: integrate email service — for now token is logged in development
-        Console.WriteLine($"[DEV] Password reset token for {user.Email}: {rawToken}");
+        await _emailSender.SendPasswordResetAsync(user.Email, user.Username, rawToken, cancellationToken);
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)

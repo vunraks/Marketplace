@@ -20,6 +20,8 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.Configure<StorageSettings>(configuration.GetSection(StorageSettings.SectionName));
         services.Configure<ExternalAuthSettings>(configuration.GetSection(ExternalAuthSettings.SectionName));
+        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
+        services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
 
         var connectionString = ConnectionStringHelper.GetPostgresConnectionString(configuration);
         services.AddDbContext<AppDbContext>(options =>
@@ -37,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddHttpClient<IExternalAuthTokenValidator, GoogleExternalAuthTokenValidator>();
 
         var jwt = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()

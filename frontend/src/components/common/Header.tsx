@@ -22,6 +22,7 @@ import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
@@ -139,6 +140,9 @@ export default function Header() {
                 </MenuItem>
                 <MenuItem component={RouterLink} to="/favorites" onClick={closeMenu}>
                   <FavoriteBorderIcon fontSize="small" sx={{ mr: 1 }} /> Избранное
+                </MenuItem>
+                <MenuItem component={RouterLink} to="/orders" onClick={closeMenu}>
+                  <ReceiptLongOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> История заказов
                 </MenuItem>
                 <MenuItem component={RouterLink} to="/disputes" onClick={closeMenu}>
                   <GavelOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Споры

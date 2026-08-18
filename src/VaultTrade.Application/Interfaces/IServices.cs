@@ -26,6 +26,7 @@ public interface IUserService
 {
     Task<UserProfileDto> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);
     Task<string> UpdateAvatarAsync(Guid userId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
     Task<PublicUserProfileDto> GetPublicProfileAsync(string username, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AdminUserDto>> GetAllForAdminAsync(CancellationToken cancellationToken = default);
@@ -71,4 +72,9 @@ public interface IPasswordHasher
 {
     string Hash(string password);
     bool Verify(string password, string hash);
+}
+
+public interface IEmailSender
+{
+    Task SendPasswordResetAsync(string email, string username, string rawToken, CancellationToken cancellationToken = default);
 }

@@ -12,12 +12,14 @@ public class UserService : IUserService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFileStorageService _fileStorage;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IMapper _mapper;
 
-    public UserService(IUnitOfWork unitOfWork, IFileStorageService fileStorage, IMapper mapper)
+    public UserService(IUnitOfWork unitOfWork, IFileStorageService fileStorage, IPasswordHasher passwordHasher, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _fileStorage = fileStorage;
+        _passwordHasher = passwordHasher;
         _mapper = mapper;
     }
 
@@ -27,6 +29,31 @@ public class UserService : IUserService
             ?? throw new NotFoundException("User not found");
 
         return _mapper.Map<UserProfileDto>(user);
+    }
+
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+            throw new AppException("Current password is required");
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            throw new AppException("New password must contain at least 8 characters");
+
+        if (request.NewPassword != request.ConfirmPassword)
+            throw new AppException("Passwords do not match");
+
+        var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("User not found");
+
+        if (!_passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new UnauthorizedAppException("Current password is invalid");
+
+        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Users.Update(user);
+
+        await _unitOfWork.RefreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<UserProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken = default)

@@ -42,6 +42,15 @@ public class UsersController : ControllerBase
         return Ok(profile);
     }
 
+    [HttpPut("me/password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        await _userService.ChangePasswordAsync(User.GetUserId(), request, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("me/avatar")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -145,6 +145,24 @@ export interface Order {
   createdAt: string
 }
 
+export interface OrderHistoryItem {
+  id: string
+  orderNumber: string
+  listingId: string
+  listingTitle: string
+  buyerId: string
+  buyerUsername: string
+  sellerId: string
+  sellerUsername: string
+  quantity: number
+  amount: number
+  currency: string
+  status: string
+  createdAt: string
+  completedAt?: string
+  side: 'buyer' | 'seller'
+}
+
 export interface Message {
   id: string
   senderId: string

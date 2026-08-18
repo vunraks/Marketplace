@@ -210,6 +210,38 @@ public class OrdersController : ControllerBase
         return Ok(ToDto(order));
     }
 
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var orders = await _context.Orders
+            .AsNoTracking()
+            .Include(o => o.Listing)
+            .Include(o => o.Buyer)
+            .Include(o => o.Seller)
+            .Where(o => o.BuyerId == userId || o.SellerId == userId)
+            .OrderByDescending(o => o.CreatedAt)
+            .Select(o => new OrderHistoryDto(
+                o.Id,
+                o.OrderNumber,
+                o.ListingId,
+                o.Listing.Title,
+                o.BuyerId,
+                o.Buyer.Username,
+                o.SellerId,
+                o.Seller.Username,
+                o.Quantity,
+                o.Amount,
+                o.Currency,
+                o.Status.ToString(),
+                o.CreatedAt,
+                o.CompletedAt,
+                o.BuyerId == userId ? "buyer" : "seller"))
+            .ToListAsync(cancellationToken);
+
+        return Ok(orders);
+    }
+
     [HttpGet("listings/{listingId:guid}/active")]
     public async Task<IActionResult> GetActiveForListing(Guid listingId, CancellationToken cancellationToken)
     {
@@ -239,3 +271,19 @@ public class OrdersController : ControllerBase
 
 public record CreateOrderRequest(Guid ListingId, int Quantity, string? BuyerNote);
 public record OrderDto(Guid Id, string OrderNumber, Guid ListingId, int Quantity, decimal Amount, string Currency, string Status, DateTime CreatedAt);
+public record OrderHistoryDto(
+    Guid Id,
+    string OrderNumber,
+    Guid ListingId,
+    string ListingTitle,
+    Guid BuyerId,
+    string BuyerUsername,
+    Guid SellerId,
+    string SellerUsername,
+    int Quantity,
+    decimal Amount,
+    string Currency,
+    string Status,
+    DateTime CreatedAt,
+    DateTime? CompletedAt,
+    string Side);

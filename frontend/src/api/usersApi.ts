@@ -9,9 +9,16 @@ export interface UpdateProfilePayload {
   phone?: string
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export const usersApi = {
   getMe: () => axiosClient.get<UserProfile>('/users/me'),
   updateMe: (payload: UpdateProfilePayload) => axiosClient.put<UserProfile>('/users/me', payload),
+  changePassword: (payload: ChangePasswordPayload) => axiosClient.put('/users/me/password', payload),
   becomeSeller: () => axiosClient.post<{ message: string }>('/users/me/become-seller'),
   getPublic: (username: string) => axiosClient.get<PublicUserProfile>(`/users/${username}`),
   getMyPosts: () => axiosClient.get<ProfilePost[]>('/profile-posts/me'),

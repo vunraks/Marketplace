@@ -20,6 +20,7 @@ import {
 } from '@mui/material'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined'
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
@@ -52,12 +53,18 @@ export default function ProfilePage() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
   const [editValues, setEditValues] = useState({
     firstName: '',
     lastName: '',
     avatarUrl: '',
     phone: '',
     bio: '',
+  })
+  const [passwordValues, setPasswordValues] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   })
 
   useEffect(() => {
@@ -111,6 +118,32 @@ export default function ProfilePage() {
       setNotice('Профиль обновлён')
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось обновить профиль'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const changePassword = async () => {
+    if (passwordValues.newPassword.length < 8) {
+      setError('Новый пароль должен быть минимум 8 символов.')
+      return
+    }
+
+    if (passwordValues.newPassword !== passwordValues.confirmPassword) {
+      setError('Пароли не совпадают.')
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      await usersApi.changePassword(passwordValues)
+      setPasswordOpen(false)
+      setPasswordValues({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setNotice('Пароль изменён. При следующем входе используйте новый пароль.')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось изменить пароль'))
     } finally {
       setBusy(false)
     }
@@ -202,7 +235,12 @@ export default function ProfilePage() {
                 {initials}
               </Avatar>
             </Box>
-            <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>Редактировать</Button>
+            <Stack spacing={1}>
+              <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>Редактировать</Button>
+              <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy} onClick={() => setPasswordOpen(true)}>
+                Изменить пароль
+              </Button>
+            </Stack>
           </Paper>
 
           <Paper sx={{ p: 2, borderRadius: 2 }}>
@@ -484,6 +522,54 @@ export default function ProfilePage() {
             Отмена
           </Button>
           <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={saveProfile} disabled={busy}>
+            Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={passwordOpen} onClose={() => busy ? undefined : setPasswordOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <LockResetOutlinedIcon color="primary" />
+          Изменить пароль
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.75} sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Текущий пароль"
+              type="password"
+              autoComplete="current-password"
+              value={passwordValues.currentPassword}
+              onChange={(e) => setPasswordValues((current) => ({ ...current, currentPassword: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="Новый пароль"
+              type="password"
+              autoComplete="new-password"
+              value={passwordValues.newPassword}
+              onChange={(e) => setPasswordValues((current) => ({ ...current, newPassword: e.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="Повторите новый пароль"
+              type="password"
+              autoComplete="new-password"
+              value={passwordValues.confirmPassword}
+              onChange={(e) => setPasswordValues((current) => ({ ...current, confirmPassword: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="outlined" onClick={() => setPasswordOpen(false)} disabled={busy}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveOutlinedIcon />}
+            onClick={changePassword}
+            disabled={busy || !passwordValues.currentPassword || !passwordValues.newPassword || !passwordValues.confirmPassword}
+          >
             Сохранить
           </Button>
         </DialogActions>

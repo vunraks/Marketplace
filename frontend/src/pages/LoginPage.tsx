@@ -79,6 +79,11 @@ export default function LoginPage() {
         <Stack spacing={1.75}>
           <TextField fullWidth label="Email" autoComplete="email" {...register('email')} error={!!errors.email} helperText={errors.email?.message} />
           <TextField fullWidth label="Пароль" type="password" autoComplete="current-password" {...register('password')} error={!!errors.password} helperText={errors.password?.message} />
+          <Box sx={{ textAlign: 'right', mt: -0.75 }}>
+            <Link component={RouterLink} to="/forgot-password" variant="body2">
+              Забыли пароль?
+            </Link>
+          </Box>
           <Button type="submit" variant="contained" fullWidth size="large" startIcon={<LoginIcon />} disabled={loading}>
             {loading ? 'Входим...' : 'Войти'}
           </Button>

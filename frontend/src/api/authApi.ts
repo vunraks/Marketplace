@@ -19,6 +19,16 @@ export interface ExternalLoginPayload {
   idToken: string
 }
 
+export interface ForgotPasswordPayload {
+  email: string
+}
+
+export interface ResetPasswordPayload {
+  token: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export const authApi = {
   register: (payload: RegisterPayload) =>
     axiosClient.post<{ userId: string; email: string; username: string; message: string }>(
@@ -29,5 +39,7 @@ export const authApi = {
   externalLogin: (provider: 'google', payload: ExternalLoginPayload) =>
     axiosClient.post<AuthResponse>(`/auth/external/${provider}`, payload),
   externalLoginUrl: (provider: 'google' | 'steam') => `${authBaseUrl}/auth/external/${provider}`,
+  forgotPassword: (payload: ForgotPasswordPayload) => axiosClient.post('/auth/forgot-password', payload),
+  resetPassword: (payload: ResetPasswordPayload) => axiosClient.post('/auth/reset-password', payload),
   logout: (refreshToken: string) => axiosClient.post('/auth/logout', { refreshToken }),
 }
