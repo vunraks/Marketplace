@@ -107,6 +107,7 @@ export default function Header() {
   }
 
   return (
+    <>
     <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'rgba(8, 13, 18, 0.84)', color: 'text.primary', borderBottom: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(18px)' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ gap: 1.5, py: 1 }}>
@@ -303,22 +304,37 @@ export default function Header() {
           )}
         </Toolbar>
       </Container>
-      <Snackbar
-        open={!!toast}
-        autoHideDuration={4200}
-        onClose={() => setToast(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          severity="info"
-          variant="filled"
-          onClose={() => setToast(null)}
-          sx={{ width: '100%', bgcolor: '#182531', color: 'text.primary', border: '1px solid rgba(101,212,110,0.22)' }}
-        >
-          <Typography fontWeight={800}>{toast?.title}</Typography>
-          {toast?.body && <Typography variant="body2">{toast.body}</Typography>}
-        </Alert>
-      </Snackbar>
     </AppBar>
+    <Snackbar
+      open={!!toast}
+      autoHideDuration={5200}
+      onClose={() => setToast(null)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      sx={{
+        zIndex: (theme) => theme.zIndex.modal + 20,
+        bottom: { xs: 18, sm: 24 },
+        right: { xs: 12, sm: 24 },
+        left: { xs: 12, sm: 'auto' },
+      }}
+    >
+      <Alert
+        severity="info"
+        variant="filled"
+        onClose={() => setToast(null)}
+        sx={{
+          width: { xs: '100%', sm: 390 },
+          maxWidth: '100%',
+          bgcolor: '#182531',
+          color: 'text.primary',
+          border: '1px solid rgba(101,212,110,0.22)',
+          boxShadow: '0 18px 60px rgba(0,0,0,0.42)',
+          alignItems: 'flex-start',
+        }}
+      >
+        <Typography fontWeight={800} sx={{ pr: 1 }}>{toast?.title}</Typography>
+        {toast?.body && <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{toast.body}</Typography>}
+      </Alert>
+    </Snackbar>
+    </>
   )
 }
