@@ -103,6 +103,8 @@ public class AuthService : IAuthService
                 Email = email,
                 Username = await GenerateExternalUsernameAsync(externalUser, cancellationToken),
                 PasswordHash = _passwordHasher.Hash($"google:{externalUser.ProviderUserId}:{Guid.NewGuid():N}"),
+                ExternalProvider = normalizedProvider,
+                ExternalProviderUserId = externalUser.ProviderUserId,
                 IsEmailVerified = true,
                 AvatarUrl = externalUser.PictureUrl
             };
@@ -114,6 +116,10 @@ public class AuthService : IAuthService
         if (IsAccessBlocked(user) || !user.IsActive)
             throw new ForbiddenException("Account is blocked or inactive");
 
+        user.ExternalProvider = normalizedProvider;
+        user.ExternalProviderUserId = externalUser.ProviderUserId;
+        user.IsEmailVerified = true;
+        user.AvatarUrl ??= externalUser.PictureUrl;
         user.LastLoginAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
         if (isNewUser)
@@ -159,6 +165,7 @@ public class AuthService : IAuthService
     {
         var user = await _unitOfWork.Users.GetByEmailAsync(request.Email.ToLowerInvariant(), cancellationToken);
         if (user is null) return;
+        if (!string.IsNullOrWhiteSpace(user.ExternalProvider)) return;
 
         var rawToken = _tokenService.GenerateRefreshToken();
         var resetToken = new PasswordResetToken

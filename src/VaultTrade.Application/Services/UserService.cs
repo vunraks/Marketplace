@@ -45,6 +45,9 @@ public class UserService : IUserService
         var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException("User not found");
 
+        if (!string.IsNullOrWhiteSpace(user.ExternalProvider))
+            throw new ForbiddenException("Password cannot be changed for external login accounts");
+
         if (!_passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
             throw new UnauthorizedAppException("Current password is invalid");
 

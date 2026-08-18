@@ -248,9 +248,11 @@ export default function ProfilePage() {
             </Box>
             <Stack spacing={1}>
               <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>{t('edit')}</Button>
-              <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy} onClick={() => setPasswordOpen(true)}>
-                {t('changePassword')}
-              </Button>
+              {profile.canChangePassword && (
+                <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy} onClick={() => setPasswordOpen(true)}>
+                  {t('changePassword')}
+                </Button>
+              )}
             </Stack>
           </Paper>
 

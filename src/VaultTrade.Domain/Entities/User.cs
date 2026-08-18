@@ -7,6 +7,8 @@ public class User : BaseEntity
     public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string? ExternalProvider { get; set; }
+    public string? ExternalProviderUserId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? AvatarUrl { get; set; }

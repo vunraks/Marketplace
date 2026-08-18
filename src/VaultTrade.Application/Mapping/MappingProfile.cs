@@ -18,6 +18,8 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<User, UserProfileDto>()
+            .ForMember(d => d.CanChangePassword,
+                o => o.MapFrom(s => string.IsNullOrWhiteSpace(s.ExternalProvider)))
             .ForMember(d => d.Roles,
                 o => o.MapFrom(s => s.UserRoles.Select(r => r.Role.Name).ToList()));
 

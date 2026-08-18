@@ -15,12 +15,15 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Email).HasMaxLength(256).IsRequired();
         builder.Property(x => x.Username).HasMaxLength(50).IsRequired();
         builder.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.ExternalProvider).HasMaxLength(50);
+        builder.Property(x => x.ExternalProviderUserId).HasMaxLength(255);
         builder.Property(x => x.FirstName).HasMaxLength(100);
         builder.Property(x => x.LastName).HasMaxLength(100);
         builder.Property(x => x.AvatarUrl).HasMaxLength(500);
         builder.Property(x => x.Phone).HasMaxLength(20);
         builder.Property(x => x.BlockReason).HasMaxLength(500);
         builder.Property(x => x.VirtualBalance).HasPrecision(18, 2).HasDefaultValue(100000m);
+        builder.HasIndex(x => new { x.ExternalProvider, x.ExternalProviderUserId });
 
         builder.HasMany(x => x.Listings)
             .WithOne(x => x.Seller)

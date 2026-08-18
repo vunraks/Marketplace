@@ -23,6 +23,7 @@ export interface UserProfile {
   bio?: string
   phone?: string
   isEmailVerified: boolean
+  canChangePassword: boolean
   isBlocked: boolean
   blockedUntil?: string
   blockReason?: string

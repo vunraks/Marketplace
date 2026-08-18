@@ -11,6 +11,7 @@ public class UserProfileDto
     public string? Bio { get; set; }
     public string? Phone { get; set; }
     public bool IsEmailVerified { get; set; }
+    public bool CanChangePassword { get; set; } = true;
     public bool IsBlocked { get; set; }
     public DateTime? BlockedUntil { get; set; }
     public string? BlockReason { get; set; }
