@@ -3,6 +3,7 @@ import type { UserSummary } from '../types'
 const ACCESS_KEY = 'vt_access_token'
 const REFRESH_KEY = 'vt_refresh_token'
 const USER_KEY = 'vt_user'
+export const AUTH_EXPIRED_EVENT = 'vaulttrade:auth-expired'
 
 export const storage = {
   getAccessToken: () => localStorage.getItem(ACCESS_KEY),
@@ -16,9 +17,10 @@ export const storage = {
     localStorage.setItem(REFRESH_KEY, refreshToken)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
   },
-  clearAuth: () => {
+  clearAuth: (emitExpired = false) => {
     localStorage.removeItem(ACCESS_KEY)
     localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(USER_KEY)
+    if (emitExpired) window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
   },
 }

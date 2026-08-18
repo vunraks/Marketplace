@@ -78,7 +78,6 @@ export async function startNotificationHub() {
     .start()
     .catch((error) => {
       console.warn('SignalR connection failed', error)
-      throw error
     })
     .finally(() => {
       startPromise = null

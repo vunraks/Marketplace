@@ -32,7 +32,7 @@ axiosClient.interceptors.response.use(
 
     const refreshToken = storage.getRefreshToken()
     if (!refreshToken) {
-      storage.clearAuth()
+      storage.clearAuth(true)
       throw error
     }
 
@@ -56,7 +56,7 @@ axiosClient.interceptors.response.use(
       original.headers.Authorization = `Bearer ${data.accessToken}`
       return axiosClient(original)
     } catch {
-      storage.clearAuth()
+      storage.clearAuth(true)
       processQueue(null)
       throw error
     } finally {

@@ -95,6 +95,13 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.error = null
     },
+    sessionExpired: (state) => {
+      state.user = null
+      state.profile = null
+      state.isAuthenticated = false
+      state.loading = false
+      state.error = null
+    },
     clearError: (state) => {
       state.error = null
     },
@@ -159,7 +166,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { logout, clearError, setUser, setVirtualBalance } = authSlice.actions
+export const { logout, sessionExpired, clearError, setUser, setVirtualBalance } = authSlice.actions
 export default authSlice.reducer
 
 export const selectIsSeller = (state: { auth: AuthState }) =>

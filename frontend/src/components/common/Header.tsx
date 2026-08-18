@@ -86,6 +86,8 @@ export default function Header() {
     try {
       const { data } = await commerceApi.getNotifications()
       setNotifications(data.items)
+    } catch {
+      setNotifications([])
     } finally {
       setNotificationsLoading(false)
     }
