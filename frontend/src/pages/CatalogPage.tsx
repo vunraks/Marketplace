@@ -6,9 +6,9 @@ import { listingsApi } from '../api/listingsApi'
 import { categoriesApi } from '../api/categoriesApi'
 import ListingCard from '../components/listing/ListingCard'
 import PaginationBar from '../components/common/PaginationBar'
-import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { CategoryTree, ListingCard as ListingCardType } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
+import ListingCardSkeleton from '../components/listing/ListingCardSkeleton'
 
 function flattenCategories(cats: CategoryTree[]): CategoryTree[] {
   return cats.flatMap((c) => [c, ...flattenCategories(c.children ?? [])])
@@ -86,7 +86,9 @@ export default function CatalogPage() {
       </Paper>
 
       {loading ? (
-        <LoadingSpinner />
+        <Box className="listing-grid">
+          {Array.from({ length: 12 }).map((_, index) => <ListingCardSkeleton key={index} />)}
+        </Box>
       ) : listings.length === 0 ? (
         <Box className="surface-panel">
           <Typography color="text.secondary">{t('nothingFound')}</Typography>

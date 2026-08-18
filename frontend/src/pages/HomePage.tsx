@@ -9,7 +9,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
 import ListingCard from '../components/listing/ListingCard'
-import LoadingSpinner from '../components/common/LoadingSpinner'
+import ListingCardSkeleton from '../components/listing/ListingCardSkeleton'
 import type { CategoryTree, ListingCard as ListingCardType } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
 
@@ -30,8 +30,6 @@ export default function HomePage() {
       })
       .finally(() => setLoading(false))
   }, [])
-
-  if (loading) return <LoadingSpinner />
 
   return (
     <>
@@ -83,7 +81,9 @@ export default function HomePage() {
           <AutoAwesomeIcon color="primary" />
         </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {categories.map((c) => (
+          {loading ? Array.from({ length: 6 }).map((_, index) => (
+            <Chip key={index} label=" " sx={{ width: 110 }} variant="outlined" />
+          )) : categories.map((c) => (
             <Chip key={c.id} label={c.name} component={RouterLink} to={`/catalog?category=${c.slug}`} clickable color="primary" variant="outlined" />
           ))}
         </Box>
@@ -97,7 +97,11 @@ export default function HomePage() {
         <Button component={RouterLink} to="/catalog" endIcon={<ArrowForwardIcon />}>{t('allProducts')}</Button>
       </Box>
 
-      {listings.length === 0 ? (
+      {loading ? (
+        <Box className="listing-grid">
+          {Array.from({ length: 8 }).map((_, index) => <ListingCardSkeleton key={index} />)}
+        </Box>
+      ) : listings.length === 0 ? (
         <Box className="surface-panel">
           <Typography color="text.secondary">{t('noActiveListings')}</Typography>
         </Box>
