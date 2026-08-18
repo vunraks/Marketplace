@@ -28,6 +28,13 @@ export const theme = createTheme({
         body: {
           backgroundColor: '#080d12',
         },
+        'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, textarea:-webkit-autofill, textarea:-webkit-autofill:hover, textarea:-webkit-autofill:focus': {
+          WebkitBoxShadow: '0 0 0 100px #1b2a36 inset',
+          WebkitTextFillColor: '#eef7f0',
+          caretColor: '#eef7f0',
+          borderRadius: 8,
+          transition: 'background-color 9999s ease-out 0s',
+        },
       },
     },
     MuiButton: {
@@ -75,8 +82,14 @@ export const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(255,255,255,0.035)',
+          backgroundColor: '#19232d',
           borderRadius: 8,
+          '&:hover': {
+            backgroundColor: '#1d2a35',
+          },
+          '&.Mui-focused': {
+            backgroundColor: '#203141',
+          },
         },
         notchedOutline: {
           borderColor: 'rgba(255,255,255,0.1)',

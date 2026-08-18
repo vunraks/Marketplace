@@ -311,7 +311,10 @@ export default function ProfilePage() {
             <Stack spacing={1} sx={{ mt: 1.5 }}>
               <TextField
                 size="small"
+                id="vaulttrade-promo-code"
+                name="vaulttrade-promo-code"
                 placeholder="WELCOME1000"
+                autoComplete="one-time-code"
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => {
@@ -546,6 +549,8 @@ export default function ProfilePage() {
           <Stack spacing={1.75} sx={{ pt: 1 }}>
             <TextField
               fullWidth
+              id="profile-current-password"
+              name="profile-current-password"
               label="Текущий пароль"
               type={showPasswordFields.currentPassword ? 'text' : 'password'}
               autoComplete="current-password"
@@ -567,6 +572,8 @@ export default function ProfilePage() {
             />
             <TextField
               fullWidth
+              id="profile-new-password"
+              name="profile-new-password"
               label="Новый пароль"
               type={showPasswordFields.newPassword ? 'text' : 'password'}
               autoComplete="new-password"
@@ -588,6 +595,8 @@ export default function ProfilePage() {
             />
             <TextField
               fullWidth
+              id="profile-confirm-password"
+              name="profile-confirm-password"
               label="Повторите новый пароль"
               type={showPasswordFields.confirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
