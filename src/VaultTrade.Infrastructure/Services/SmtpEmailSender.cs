@@ -62,7 +62,7 @@ public class SmtpEmailSender : IEmailSender
 
             await client.SendMailAsync(message, cancellationToken);
         }
-        catch (Exception ex) when (ex is SmtpException or InvalidOperationException or FormatException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to send password reset email to {Email}. Password reset link: {ResetUrl}", email, resetUrl);
         }
