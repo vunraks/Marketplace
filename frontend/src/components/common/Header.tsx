@@ -9,6 +9,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Select,
   Toolbar,
   Typography,
 } from '@mui/material'
@@ -31,11 +32,14 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { fetchProfile, logout } from '../../store/authSlice'
 import { onNotificationReceived } from '../../realtime/notificationHub'
 import { useUnreadNotifications } from '../../realtime/useUnreadNotifications'
+import { useTranslation } from '../../i18n/LanguageProvider'
+import type { LanguageCode } from '../../i18n/translations'
 
 export default function Header() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { isAuthenticated, user, profile } = useAppSelector((s) => s.auth)
+  const { language, setLanguage, t, languageLabels, supportedLanguages } = useTranslation()
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
   const unreadCount = useUnreadNotifications()
 
@@ -81,19 +85,39 @@ export default function Header() {
           <Box sx={{ flex: 1 }} />
 
           <Button component={RouterLink} to="/catalog" color="inherit">
-            Каталог
+            {t('catalog')}
           </Button>
 
           {isAuthenticated && isSeller && (
             <>
               <Button component={RouterLink} to="/my-listings" color="inherit">
-                Мои товары
+                {t('myListings')}
               </Button>
               <Button component={RouterLink} to="/my-listings/create" variant="contained" startIcon={<AddCircleOutlineIcon />}>
-                Создать
+                {t('create')}
               </Button>
             </>
           )}
+
+          <Select
+            size="small"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value as LanguageCode)}
+            aria-label={t('language')}
+            sx={{
+              minWidth: 84,
+              height: 40,
+              color: 'text.primary',
+              '.MuiSelect-select': { py: 0.75, fontWeight: 800 },
+              '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.14)' },
+            }}
+          >
+            {supportedLanguages.map((code) => (
+              <MenuItem key={code} value={code}>
+                {code.toUpperCase()}
+              </MenuItem>
+            ))}
+          </Select>
 
           {isAuthenticated ? (
             <>
@@ -123,54 +147,57 @@ export default function Header() {
               </IconButton>
               <Menu anchorEl={anchor} open={!!anchor} onClose={closeMenu}>
                 <MenuItem component={RouterLink} to="/profile" onClick={closeMenu}>
-                  <PersonOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Профиль
+                  <PersonOutlineIcon fontSize="small" sx={{ mr: 1 }} /> {t('profile')}
                 </MenuItem>
                 {isSeller && (
                   <MenuItem component={RouterLink} to="/seller-dashboard" onClick={closeMenu}>
-                    <DashboardOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Кабинет продавца
+                    <DashboardOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('sellerDashboard')}
                   </MenuItem>
                 )}
                 {!isSeller && (
                   <MenuItem component={RouterLink} to="/become-seller" onClick={closeMenu}>
-                    <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Стать продавцом
+                    <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('becomeSeller')}
                   </MenuItem>
                 )}
                 <MenuItem component={RouterLink} to="/chats" onClick={closeMenu}>
-                  <ChatBubbleOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Чаты {unreadCount > 0 ? `(${unreadCount})` : ''}
+                  <ChatBubbleOutlineIcon fontSize="small" sx={{ mr: 1 }} /> {t('chats')} {unreadCount > 0 ? `(${unreadCount})` : ''}
                 </MenuItem>
                 <MenuItem component={RouterLink} to="/favorites" onClick={closeMenu}>
-                  <FavoriteBorderIcon fontSize="small" sx={{ mr: 1 }} /> Избранное
+                  <FavoriteBorderIcon fontSize="small" sx={{ mr: 1 }} /> {t('favorites')}
                 </MenuItem>
                 <MenuItem component={RouterLink} to="/orders" onClick={closeMenu}>
-                  <ReceiptLongOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> История заказов
+                  <ReceiptLongOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('orderHistory')}
                 </MenuItem>
                 <MenuItem component={RouterLink} to="/disputes" onClick={closeMenu}>
-                  <GavelOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Споры
+                  <GavelOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('disputes')}
                 </MenuItem>
                 {isModerator && (
                   <MenuItem component={RouterLink} to="/moderation" onClick={closeMenu}>
-                    <ShieldOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Модерация
+                    <ShieldOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('moderation')}
                   </MenuItem>
                 )}
                 {isAdmin && (
                   <MenuItem component={RouterLink} to="/admin/users" onClick={closeMenu}>
-                    <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 1 }} /> Пользователи
+                    <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 1 }} /> {t('users')}
                   </MenuItem>
                 )}
                 {isAdmin && (
                   <MenuItem component={RouterLink} to="/admin/promocodes" onClick={closeMenu}>
-                    <LocalOfferOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Промокоды
+                    <LocalOfferOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('promoCodes')}
                   </MenuItem>
                 )}
+                <MenuItem disabled sx={{ display: { xs: 'flex', sm: 'none' }, opacity: '1 !important' }}>
+                  {languageLabels[language]}
+                </MenuItem>
                 <MenuItem onClick={signOut}>
-                  <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Выйти
+                  <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> {t('logout')}
                 </MenuItem>
               </Menu>
             </>
           ) : (
             <>
-              <Button component={RouterLink} to="/login" color="inherit">Вход</Button>
-              <Button component={RouterLink} to="/register" variant="contained">Регистрация</Button>
+              <Button component={RouterLink} to="/login" color="inherit">{t('login')}</Button>
+              <Button component={RouterLink} to="/register" variant="contained">{t('register')}</Button>
             </>
           )}
         </Toolbar>

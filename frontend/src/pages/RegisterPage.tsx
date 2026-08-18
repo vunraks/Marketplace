@@ -9,26 +9,33 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { clearError, loginWithGoogle, register as registerUser } from '../store/authSlice'
 import { renderGoogleSignInButton } from '../utils/googleAuth'
+import { useTranslation } from '../i18n/LanguageProvider'
 
-const schema = z.object({
-  email: z.string().email('Введите корректный email'),
-  username: z.string().min(3, 'Минимум 3 символа').regex(/^[a-zA-Z0-9_]+$/, 'Только буквы, цифры и _'),
-  password: z.string()
-    .min(8, 'Минимум 8 символов')
-    .regex(/[A-Z]/, 'Нужна заглавная буква')
-    .regex(/[a-z]/, 'Нужна строчная буква')
-    .regex(/[0-9]/, 'Нужна цифра'),
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, { message: 'Пароли не совпадают', path: ['confirmPassword'] })
-
-type FormData = z.infer<typeof schema>
+type FormData = {
+  email: string
+  username: string
+  password: string
+  confirmPassword: string
+}
 
 export default function RegisterPage() {
+  const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { loading, error } = useAppSelector((s) => s.auth)
   const [googleError, setGoogleError] = useState('')
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
+
+  const schema = z.object({
+    email: z.string().email(t('emailInvalid')),
+    username: z.string().min(3, 'Minimum 3 characters').regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers and _'),
+    password: z.string()
+      .min(8, 'Minimum 8 characters')
+      .regex(/[A-Z]/, 'Use an uppercase letter')
+      .regex(/[a-z]/, 'Use a lowercase letter')
+      .regex(/[0-9]/, 'Use a number'),
+    confirmPassword: z.string(),
+  }).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] })
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -47,7 +54,7 @@ export default function RegisterPage() {
       const result = await dispatch(loginWithGoogle(idToken))
       if (loginWithGoogle.fulfilled.match(result)) navigate('/')
     } catch (e) {
-      setGoogleError(e instanceof Error ? e.message : 'Не удалось продолжить через Google')
+      setGoogleError(e instanceof Error ? e.message : 'Google sign-in failed')
     }
   }
 
@@ -59,42 +66,42 @@ export default function RegisterPage() {
       (idToken) => void submitGoogleToken(idToken),
       setGoogleError,
       'signup_with',
-    ).catch((e) => setGoogleError(e instanceof Error ? e.message : 'Не удалось загрузить Google вход'))
+    ).catch((e) => setGoogleError(e instanceof Error ? e.message : 'Google sign-in failed'))
   }, [])
 
   return (
     <>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight={800}>Регистрация</Typography>
+        <Typography variant="h4" fontWeight={800}>{t('registerTitle')}</Typography>
         <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-          Создайте аккаунт продавца или покупателя за пару минут.
+          {t('registerText')}
         </Typography>
       </Box>
 
       <Stack spacing={1.25}>
         <Box ref={googleButtonRef} sx={{ minHeight: 44, display: 'flex', justifyContent: 'center' }} />
         <Button variant="outlined" size="large" startIcon={<SportsEsportsIcon />} disabled>
-          Продолжить со Steam
+          {t('continueSteam')}
         </Button>
       </Stack>
 
-      <Divider sx={{ my: 3 }}>или</Divider>
+      <Divider sx={{ my: 3 }}>{t('or')}</Divider>
 
       {(error || googleError) && <Alert severity="error" sx={{ mb: 2 }}>{error || googleError}</Alert>}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={1.75}>
           <TextField fullWidth label="Email" autoComplete="email" {...register('email')} error={!!errors.email} helperText={errors.email?.message} />
-          <TextField fullWidth label="Имя пользователя" autoComplete="username" {...register('username')} error={!!errors.username} helperText={errors.username?.message} />
-          <TextField fullWidth label="Пароль" type="password" autoComplete="new-password" {...register('password')} error={!!errors.password} helperText={errors.password?.message} />
-          <TextField fullWidth label="Повторите пароль" type="password" autoComplete="new-password" {...register('confirmPassword')} error={!!errors.confirmPassword} helperText={errors.confirmPassword?.message} />
+          <TextField fullWidth label={t('username')} autoComplete="username" {...register('username')} error={!!errors.username} helperText={errors.username?.message} />
+          <TextField fullWidth label={t('password')} type="password" autoComplete="new-password" {...register('password')} error={!!errors.password} helperText={errors.password?.message} />
+          <TextField fullWidth label={t('repeatPassword')} type="password" autoComplete="new-password" {...register('confirmPassword')} error={!!errors.confirmPassword} helperText={errors.confirmPassword?.message} />
           <Button type="submit" variant="contained" fullWidth size="large" startIcon={<PersonAddAltIcon />} disabled={loading}>
-            {loading ? 'Создаём аккаунт...' : 'Создать аккаунт'}
+            {loading ? t('creatingAccount') : t('createAccount')}
           </Button>
         </Stack>
       </form>
 
       <Typography variant="body2" sx={{ mt: 2.5, textAlign: 'center', color: 'text.secondary' }}>
-        Уже есть аккаунт? <Link component={RouterLink} to="/login">Войти</Link>
+        {t('alreadyHaveAccount')} <Link component={RouterLink} to="/login">{t('signIn')}</Link>
       </Typography>
     </>
   )

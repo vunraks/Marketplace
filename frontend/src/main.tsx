@@ -6,6 +6,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material'
 import { store } from './store'
 import { theme } from './theme/theme'
 import App from './App'
+import { LanguageProvider } from './i18n/LanguageProvider'
 import './styles/global.scss'
 
 createRoot(document.getElementById('root')!).render(
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <App />
+          <LanguageProvider>
+            <App />
+          </LanguageProvider>
         </ThemeProvider>
       </BrowserRouter>
     </Provider>
