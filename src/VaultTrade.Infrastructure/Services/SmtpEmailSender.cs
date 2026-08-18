@@ -33,32 +33,39 @@ public class SmtpEmailSender : IEmailSender
             return;
         }
 
-        using var message = new MailMessage
+        try
         {
-            From = new MailAddress(_settings.FromEmail, _settings.FromName),
-            Subject = "Восстановление пароля VaultTrade",
-            Body = $"""
-                Привет, {username}.
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_settings.FromEmail, _settings.FromName),
+                Subject = "Восстановление пароля VaultTrade",
+                Body = $"""
+                    Привет, {username}.
 
-                Чтобы восстановить пароль, откройте ссылку:
-                {resetUrl}
+                    Чтобы восстановить пароль, откройте ссылку:
+                    {resetUrl}
 
-                Ссылка действует 1 час. Если вы не запрашивали восстановление, просто игнорируйте это письмо.
-                """,
-            IsBodyHtml = false
-        };
+                    Ссылка действует 1 час. Если вы не запрашивали восстановление, просто игнорируйте это письмо.
+                    """,
+                IsBodyHtml = false
+            };
 
-        message.To.Add(email);
+            message.To.Add(email);
 
-        using var client = new SmtpClient(_settings.SmtpHost, _settings.Port)
+            using var client = new SmtpClient(_settings.SmtpHost, _settings.Port)
+            {
+                EnableSsl = _settings.EnableSsl
+            };
+
+            if (!string.IsNullOrWhiteSpace(_settings.Username))
+                client.Credentials = new NetworkCredential(_settings.Username, _settings.Password);
+
+            await client.SendMailAsync(message, cancellationToken);
+        }
+        catch (Exception ex) when (ex is SmtpException or InvalidOperationException or FormatException)
         {
-            EnableSsl = _settings.EnableSsl
-        };
-
-        if (!string.IsNullOrWhiteSpace(_settings.Username))
-            client.Credentials = new NetworkCredential(_settings.Username, _settings.Password);
-
-        await client.SendMailAsync(message, cancellationToken);
+            _logger.LogError(ex, "Failed to send password reset email to {Email}. Password reset link: {ResetUrl}", email, resetUrl);
+        }
     }
 
     private string BuildResetUrl(string rawToken)
