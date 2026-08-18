@@ -38,14 +38,14 @@ public class SmtpEmailSender : IEmailSender
             using var message = new MailMessage
             {
                 From = new MailAddress(_settings.FromEmail, _settings.FromName),
-                Subject = "Восстановление пароля VaultTrade",
+                Subject = "VaultTrade password reset",
                 Body = $"""
-                    Привет, {username}.
+                    Hello, {username}.
 
-                    Чтобы восстановить пароль, откройте ссылку:
+                    Open this link to reset your password:
                     {resetUrl}
 
-                    Ссылка действует 1 час. Если вы не запрашивали восстановление, просто игнорируйте это письмо.
+                    The link is valid for 1 hour. If you did not request a password reset, ignore this email.
                     """,
                 IsBodyHtml = false
             };
@@ -62,7 +62,7 @@ public class SmtpEmailSender : IEmailSender
 
             await client.SendMailAsync(message, cancellationToken);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send password reset email to {Email}. Password reset link: {ResetUrl}", email, resetUrl);
         }
