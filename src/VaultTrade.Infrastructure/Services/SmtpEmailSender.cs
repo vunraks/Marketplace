@@ -64,7 +64,11 @@ public class SmtpEmailSender : IEmailSender
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send password reset email to {Email}. Password reset link: {ResetUrl}", email, resetUrl);
+            _logger.LogWarning(
+                "Failed to send password reset email to {Email}: {Error}. Password reset link: {ResetUrl}",
+                email,
+                ex.Message,
+                resetUrl);
         }
     }
 
