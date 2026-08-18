@@ -56,7 +56,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpGet("my")]
-    [Authorize(Policy = "RequireSeller")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyListings([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
@@ -65,7 +65,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "RequireSeller")]
+    [Authorize]
     [ProducesResponseType(typeof(ListingDetailDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateListingRequest request, CancellationToken cancellationToken)
     {
@@ -76,7 +76,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "RequireSeller")]
+    [Authorize]
     [ProducesResponseType(typeof(ListingDetailDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateListingRequest request, CancellationToken cancellationToken)
     {
@@ -87,7 +87,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "RequireSeller")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -117,7 +117,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/images")]
-    [Authorize(Policy = "RequireSeller")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<IActionResult> UploadImages(Guid id, [FromForm] List<IFormFile> files, CancellationToken cancellationToken)
     {

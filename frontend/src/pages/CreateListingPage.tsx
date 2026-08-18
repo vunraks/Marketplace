@@ -26,6 +26,18 @@ function flattenCategories(cats: CategoryTree[]): CategoryTree[] {
   return cats.flatMap((category) => [category, ...flattenCategories(category.children ?? [])])
 }
 
+const getCreateListingError = (error: unknown, fallback: string) => {
+  const status = typeof error === 'object' && error !== null && 'response' in error
+    ? (error as { response?: { status?: number } }).response?.status
+    : undefined
+
+  if (status === 403) {
+    return 'Создавать объявления может только продавец. Если вы уже нажимали "Стать продавцом", обновите профиль или войдите заново. Также доступ может быть временно ограничен администратором.'
+  }
+
+  return getErrorMessage(error, fallback)
+}
+
 export default function CreateListingPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -122,7 +134,7 @@ export default function CreateListingPage() {
 
       navigate(`/listing/${finalListing.id}`)
     } catch (e) {
-      setError(getErrorMessage(e, isEditMode ? t('saveListingFail') : t('createListingFail')))
+      setError(getCreateListingError(e, isEditMode ? t('saveListingFail') : t('createListingFail')))
     } finally {
       setSubmitting(false)
     }

@@ -264,6 +264,12 @@ public class ListingService : IListingService
         var seller = await _unitOfWork.Users.GetByIdAsync(sellerId, cancellationToken)
             ?? throw new NotFoundException("User not found");
 
+        var hasSellerAccess = seller.UserRoles.Any(role =>
+            role.Role.Name is RoleNames.Seller or RoleNames.Moderator or RoleNames.Admin);
+
+        if (!hasSellerAccess)
+            throw new ForbiddenException("Seller role is required");
+
         if (seller.IsBlocked && (seller.BlockedUntil is null || seller.BlockedUntil > DateTime.UtcNow))
             throw new ForbiddenException("Seller access is restricted");
     }
