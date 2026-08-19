@@ -43,9 +43,10 @@ const googleButtonWrapSx = {
   justifyContent: 'center',
   alignItems: 'center',
   borderRadius: 2,
-  p: 0.75,
-  border: '1px solid rgba(148, 163, 184, 0.18)',
-  background: 'rgba(15, 23, 42, 0.5)',
+  p: 0,
+  border: '1px solid rgba(148, 163, 184, 0.16)',
+  background: 'rgba(2, 6, 23, 0.28)',
+  overflow: 'hidden',
   '& > div': {
     width: '100% !important',
   },

@@ -101,7 +101,7 @@ export const renderGoogleSignInButton = async (
   parent.innerHTML = ''
   const width = Math.min(Math.max(parent.clientWidth || 360, 320), 520)
   window.google?.accounts.id.renderButton(parent, {
-    theme: 'outline',
+    theme: 'filled_black',
     size: 'large',
     text,
     shape: 'rectangular',
