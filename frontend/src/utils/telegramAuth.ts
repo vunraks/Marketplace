@@ -44,7 +44,6 @@ export const renderTelegramLoginButton = (
   script.setAttribute('data-telegram-login', telegramBotUsername)
   script.setAttribute('data-size', 'large')
   script.setAttribute('data-radius', '10')
-  script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-onauth', `${callbackName}(user)`)
 
   parent.appendChild(script)
