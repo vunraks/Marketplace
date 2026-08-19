@@ -150,7 +150,7 @@ public class ConversationsController : ControllerBase
         }
 
         var dto = ToDto(conversation);
-        await _realtime.SendConversationUpdatedAsync(conversation.Participants.Select(p => p.UserId), dto, cancellationToken);
+        await _realtime.SendConversationUpdatedAsync(conversation.Participants.Where(p => !p.IsDeleted).Select(p => p.UserId), dto, cancellationToken);
 
         return Ok(dto);
     }
@@ -260,7 +260,7 @@ public class ConversationsController : ControllerBase
         var conversation = await LoadConversationAsync(conversationId, cancellationToken);
         var dto = ToDto(conversation);
         await _realtime.SendConversationUpdatedAsync(
-            conversation.Participants.Select(p => p.UserId).Concat(removedSupportParticipantIds).Distinct(),
+            conversation.Participants.Where(p => !p.IsDeleted).Select(p => p.UserId).Concat(removedSupportParticipantIds).Distinct(),
             dto,
             cancellationToken);
         await _realtime.SendNotificationsAsync(notifications, cancellationToken);
@@ -442,7 +442,7 @@ public class ConversationsController : ControllerBase
         conversation.OpenedAt,
         conversation.IsClosed,
         conversation.ClosedAt,
-        conversation.Participants.Select(p => new ParticipantDto(p.UserId, p.User?.Username ?? string.Empty)).ToList(),
+        conversation.Participants.Where(p => !p.IsDeleted).Select(p => new ParticipantDto(p.UserId, p.User?.Username ?? string.Empty)).ToList(),
         conversation.Messages.Where(m => !m.IsDeleted).OrderBy(m => m.CreatedAt).Select(m =>
             new MessageDto(m.Id, m.SenderId, m.Sender?.Username ?? string.Empty, m.Content, m.CreatedAt)).ToList());
 }

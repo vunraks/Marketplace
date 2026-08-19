@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material'
-import HeadsetMicOutlinedIcon from '@mui/icons-material/HeadsetMicOutlined'
-import SendIcon from '@mui/icons-material/Send'
-import LockIcon from '@mui/icons-material/Lock'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { Link as RouterLink } from 'react-router-dom'
+import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import HeadsetMicOutlinedIcon from '@mui/icons-material/HeadsetMicOutlined'
+import LockIcon from '@mui/icons-material/Lock'
+import SendIcon from '@mui/icons-material/Send'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
-import type { Conversation } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
 import { useAppSelector } from '../store/hooks'
+import type { Conversation } from '../types'
 import { formatDateTime, getErrorMessage } from '../utils/format'
 
 const emptyGuid = '00000000-0000-0000-0000-000000000000'
@@ -49,7 +49,7 @@ export default function ChatsPage() {
         setConversations(r.data)
         setActive((current) => {
           if (!current) return r.data[0] ?? null
-          return r.data.find((item) => item.id === current.id) ?? current
+          return r.data.find((item) => item.id === current.id) ?? r.data[0] ?? null
         })
       })
       .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить чаты')))
@@ -92,7 +92,14 @@ export default function ChatsPage() {
       setConversations((items) => upsertConversation(items, data))
       setMessage('')
     } catch (e) {
-      setError(getErrorMessage(e, active?.isSupport ? 'Не удалось отправить сообщение в поддержку' : 'Не удалось отправить сообщение'))
+      const errorMessage = getErrorMessage(e, active?.isSupport ? 'Не удалось отправить сообщение в поддержку' : 'Не удалось отправить сообщение')
+      if (errorMessage.includes('not a participant') && active) {
+        const nextItems = conversations.filter((item) => item.id !== active.id)
+        setConversations(nextItems)
+        setActive(nextItems[0] ?? null)
+        setMessage('')
+      }
+      setError(errorMessage)
     } finally {
       setBusy(false)
     }
@@ -120,11 +127,9 @@ export default function ChatsPage() {
     setError('')
     try {
       await commerceApi.deleteConversation(deleteId)
-      setConversations((items) => {
-        const nextItems = items.filter((item) => item.id !== deleteId)
-        setActive(nextItems[0] ?? null)
-        return nextItems
-      })
+      const { data: nextItems } = await commerceApi.getConversations()
+      setConversations(nextItems)
+      setActive(nextItems[0] ?? null)
       setMessage('')
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось удалить чат'))
@@ -159,7 +164,10 @@ export default function ChatsPage() {
                 return (
                   <Button
                     key={conversation.id}
-                    onClick={() => setActive(conversation)}
+                    onClick={() => {
+                      setActive(conversation)
+                      setError('')
+                    }}
                     variant={isActive ? 'contained' : 'outlined'}
                     sx={{ justifyContent: 'flex-start', textAlign: 'left', display: 'block' }}
                   >
