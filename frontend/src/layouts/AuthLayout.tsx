@@ -44,7 +44,7 @@ export default function AuthLayout() {
           inset: '-20%',
           zIndex: -3,
           background:
-            'conic-gradient(from 130deg at 24% 28%, rgba(34,197,94,0.22), rgba(56,189,248,0.18), rgba(168,85,247,0.11), rgba(34,197,94,0.16), rgba(34,197,94,0.22))',
+            'conic-gradient(from 130deg at 24% 28%, rgba(56,189,248,0.2), rgba(34,197,94,0.075), rgba(168,85,247,0.12), rgba(14,165,233,0.16), rgba(56,189,248,0.18))',
           filter: 'blur(32px)',
           animation: 'authAuroraShift 12s ease-in-out infinite',
         },
@@ -82,7 +82,7 @@ export default function AuthLayout() {
             position: 'absolute',
             height: 2,
             borderRadius: 999,
-            background: 'linear-gradient(90deg, transparent, rgba(96,165,250,0.58), rgba(34,197,94,0.42), transparent)',
+            background: 'linear-gradient(90deg, transparent, rgba(96,165,250,0.6), rgba(226,232,240,0.24), transparent)',
             boxShadow: '0 0 24px rgba(56,189,248,0.22)',
             animation: 'authStream 8s ease-in-out infinite',
           },
