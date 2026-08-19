@@ -46,7 +46,7 @@ import { formatDateTime } from '../../utils/format'
 function playMessageNotificationSound() {
   try {
     const audio = new Audio('/sounds/1111.mp3')
-    audio.volume = 0.65
+    audio.volume = 0.30
     void audio.play()
   } catch {
     // Browser may block audio until the user interacts with the page.
