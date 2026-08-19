@@ -288,6 +288,7 @@ public class ConversationsController : ControllerBase
             .Where(c =>
                 c.ListingId == null &&
                 c.OrderId == null &&
+                !c.IsClosed &&
                 c.Participants.Any(p => p.UserId == userId) &&
                 c.Participants.Any(p => p.UserId != userId && p.User.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator)))
             .OrderByDescending(c => c.CreatedAt)

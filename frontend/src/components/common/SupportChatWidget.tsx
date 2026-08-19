@@ -77,10 +77,16 @@ export default function SupportChatWidget() {
     }
   }
 
+  const startNewConversation = () => {
+    setConversation(null)
+    setMessage('')
+    setError('')
+  }
+
   return (
     <Box sx={{ position: 'fixed', right: { xs: 14, sm: 22 }, bottom: { xs: 14, sm: 22 }, zIndex: 1250 }}>
       {!open ? (
-        <Badge color="warning" variant={isRealConversation(conversation) ? 'dot' : 'standard'}>
+        <Badge color="warning" variant={isRealConversation(conversation) && !conversation?.isClosed ? 'dot' : 'standard'}>
           <Button
             variant="contained"
             startIcon={<HeadsetMicOutlinedIcon />}
@@ -170,6 +176,22 @@ export default function SupportChatWidget() {
               </Box>
             )}
           </Stack>
+
+          {conversation?.isClosed && (
+            <Box sx={{ px: 1.25, pt: 1.25 }}>
+              <Alert
+                severity="info"
+                action={
+                  <Button color="inherit" size="small" onClick={startNewConversation}>
+                    Новое обращение
+                  </Button>
+                }
+                sx={{ alignItems: 'center' }}
+              >
+                Чат закрыт поддержкой. Можно открыть новое обращение.
+              </Alert>
+            </Box>
+          )}
 
           <Box sx={{ p: 1.25, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <TextField
