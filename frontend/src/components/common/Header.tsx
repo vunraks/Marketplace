@@ -311,11 +311,11 @@ export default function Header() {
       open={!!toast}
       autoHideDuration={5200}
       onClose={() => setToast(null)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       sx={{
         zIndex: (theme) => theme.zIndex.modal + 20,
-        bottom: { xs: 18, sm: 24 },
-        right: { xs: 12, sm: 24 },
+        top: { xs: 76, sm: 84 },
+        right: { xs: 12, sm: 28 },
         left: { xs: 12, sm: 'auto' },
       }}
     >
