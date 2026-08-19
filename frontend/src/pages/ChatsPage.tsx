@@ -62,10 +62,20 @@ export default function ChatsPage() {
 
   useEffect(() => {
     return onConversationUpdated((conversation) => {
+      const includesCurrentUser = conversation.participants.some((participant) =>
+        participant.userId.toLowerCase() === user?.id?.toLowerCase()
+      )
+
+      if (!includesCurrentUser) {
+        setConversations((items) => items.filter((item) => item.id !== conversation.id))
+        setActive((current) => (current?.id === conversation.id ? null : current))
+        return
+      }
+
       setConversations((items) => upsertConversation(items, conversation))
       setActive((current) => (current?.id === conversation.id ? conversation : current))
     })
-  }, [])
+  }, [user?.id])
 
   const send = async () => {
     const content = message.trim()

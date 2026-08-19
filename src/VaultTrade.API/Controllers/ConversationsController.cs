@@ -193,13 +193,19 @@ public class ConversationsController : ControllerBase
         CancellationToken cancellationToken,
         Notification? extraNotification = null)
     {
-        var isClosed = await _context.Conversations
+        var conversationInfo = await _context.Conversations
             .Where(c => c.Id == conversationId)
-            .Select(c => c.IsClosed)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(c => new { c.IsClosed, IsSupport = c.ListingId == null && c.OrderId == null })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException("Conversation not found");
 
-        if (isClosed)
+        if (conversationInfo.IsClosed)
             throw new AppException("Chat is closed");
+
+        var removedSupportParticipantIds = new List<Guid>();
+        var staffAnsweredSupport = conversationInfo.IsSupport && await IsStaffAsync(userId, cancellationToken);
+        if (staffAnsweredSupport)
+            removedSupportParticipantIds = await AssignSupportConversationAsync(conversationId, userId, cancellationToken);
 
         _context.Messages.Add(new Message
         {
@@ -236,10 +242,28 @@ public class ConversationsController : ControllerBase
 
         var conversation = await LoadConversationAsync(conversationId, cancellationToken);
         var dto = ToDto(conversation);
-        await _realtime.SendConversationUpdatedAsync(conversation.Participants.Select(p => p.UserId), dto, cancellationToken);
+        await _realtime.SendConversationUpdatedAsync(
+            conversation.Participants.Select(p => p.UserId).Concat(removedSupportParticipantIds).Distinct(),
+            dto,
+            cancellationToken);
         await _realtime.SendNotificationsAsync(notifications, cancellationToken);
 
         return Ok(dto);
+    }
+
+    private async Task<List<Guid>> AssignSupportConversationAsync(Guid conversationId, Guid assigneeId, CancellationToken cancellationToken)
+    {
+        var extraStaffParticipants = await _context.ConversationParticipants
+            .Where(p =>
+                p.ConversationId == conversationId &&
+                p.UserId != assigneeId &&
+                p.User.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator))
+            .ToListAsync(cancellationToken);
+
+        if (extraStaffParticipants.Count > 0)
+            _context.ConversationParticipants.RemoveRange(extraStaffParticipants);
+
+        return extraStaffParticipants.Select(p => p.UserId).ToList();
     }
 
     private async Task<Guid> FindBuyerSellerConversationIdAsync(
