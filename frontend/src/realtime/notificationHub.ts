@@ -2,11 +2,15 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  type IRetryPolicy,
   LogLevel,
+  type RetryContext,
 } from '@microsoft/signalr'
+import axios from 'axios'
 import { notificationsHubUrl } from '../config/api'
-import { storage } from '../utils/storage'
-import type { Conversation, NotificationItem } from '../types'
+import { apiBaseUrl } from '../config/api'
+import { AUTH_EXPIRED_EVENT, storage } from '../utils/storage'
+import type { AuthResponse, Conversation, NotificationItem } from '../types'
 
 type NotificationHandler = (notification: NotificationItem, unreadCount: number) => void
 type UnreadHandler = (unreadCount: number) => void
@@ -20,6 +24,15 @@ const moderationHandlers = new Set<ModerationHandler>()
 
 let connection: HubConnection | null = null
 let startPromise: Promise<void> | null = null
+let refreshPromise: Promise<string | null> | null = null
+
+const reconnectPolicy: IRetryPolicy = {
+  nextRetryDelayInMilliseconds: (context: RetryContext) => {
+    if (!storage.getAccessToken()) return null
+
+    return [0, 2000, 5000, 10000, 30000][context.previousRetryCount] ?? null
+  },
+}
 
 function emitNotification(notification: NotificationItem, unreadCount: number) {
   notificationHandlers.forEach((handler) => handler(notification, unreadCount))
@@ -42,7 +55,7 @@ function createConnection() {
     .withUrl(notificationsHubUrl, {
       accessTokenFactory: () => storage.getAccessToken() ?? '',
     })
-    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+    .withAutomaticReconnect(reconnectPolicy)
     .configureLogging(LogLevel.Warning)
     .build()
 
@@ -66,8 +79,57 @@ function createConnection() {
   return hub
 }
 
+function isTokenExpiringSoon(token: string) {
+  try {
+    const [, payload] = token.split('.')
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: number }
+    if (!decoded.exp) return true
+
+    return decoded.exp * 1000 - Date.now() < 30_000
+  } catch {
+    return true
+  }
+}
+
+async function refreshAccessToken() {
+  const refreshToken = storage.getRefreshToken()
+  if (!refreshToken) return null
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post<AuthResponse>(`${apiBaseUrl}/auth/refresh`, { refreshToken })
+      .then((response) => {
+        storage.setAuth(response.data.accessToken, response.data.refreshToken, response.data.user)
+        return response.data.accessToken
+      })
+      .catch(() => {
+        storage.clearAuth(true)
+        return null
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+
+  return refreshPromise
+}
+
+async function ensureAccessToken() {
+  const token = storage.getAccessToken()
+  if (!token) return refreshAccessToken()
+  if (!isTokenExpiringSoon(token)) return token
+
+  return refreshAccessToken()
+}
+
+const isUnauthorizedHubError = (error: unknown) =>
+  String(error).includes('Status code \'401\'') ||
+  String(error).includes('Status code "401"') ||
+  String(error).includes('Status code: 401')
+
 export async function startNotificationHub() {
-  if (!storage.getAccessToken()) return
+  const token = await ensureAccessToken()
+  if (!token) return
 
   if (!connection) connection = createConnection()
 
@@ -76,7 +138,20 @@ export async function startNotificationHub() {
 
   startPromise = connection
     .start()
-    .catch((error) => {
+    .catch(async (error) => {
+      if (isUnauthorizedHubError(error)) {
+        const refreshedToken = await refreshAccessToken()
+        if (!refreshedToken) {
+          await stopNotificationHub()
+          return
+        }
+
+        await stopNotificationHub()
+        connection = createConnection()
+        await connection.start()
+        return
+      }
+
       console.warn('SignalR connection failed', error)
     })
     .finally(() => {
@@ -84,6 +159,12 @@ export async function startNotificationHub() {
     })
 
   return startPromise
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener(AUTH_EXPIRED_EVENT, () => {
+    void stopNotificationHub()
+  })
 }
 
 export async function stopNotificationHub() {
