@@ -230,7 +230,7 @@ export default function ChatsPage() {
                         Завершить чат
                       </Button>
                     )}
-                    {isRealConversation(active) && (
+                    {isRealConversation(active) && active.isClosed && (
                       <Button size="small" color="error" variant="outlined" startIcon={<DeleteOutlineIcon />} disabled={busy} onClick={deleteChat}>
                         Удалить
                       </Button>

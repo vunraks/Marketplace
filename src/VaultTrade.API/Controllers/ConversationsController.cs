@@ -110,8 +110,12 @@ public class ConversationsController : ControllerBase
     {
         var userId = User.GetUserId();
         var participant = await _context.ConversationParticipants
+            .Include(p => p.Conversation)
             .FirstOrDefaultAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken)
             ?? throw new NotFoundException("Conversation not found");
+
+        if (!participant.Conversation.IsClosed)
+            throw new AppException("Only closed chats can be deleted");
 
         if (!participant.IsDeleted)
         {
