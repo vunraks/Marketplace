@@ -58,6 +58,14 @@ public class OrdersController : ControllerBase
             throw new AppException("Not enough items in stock");
 
         var amount = listing.Price * quantity;
+        var buyerBalance = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == buyerId)
+            .Select(u => u.VirtualBalance)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (buyerBalance < amount)
+            throw new AppException("Not enough virtual currency");
 
         var order = new Order
         {
@@ -114,6 +122,16 @@ public class OrdersController : ControllerBase
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         var now = DateTime.UtcNow;
 
+        var buyerUpdated = await _context.Users
+            .Where(u => u.Id == order.BuyerId && u.VirtualBalance >= order.Amount)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.VirtualBalance, u => u.VirtualBalance - order.Amount)
+                .SetProperty(u => u.UpdatedAt, now),
+                cancellationToken);
+
+        if (buyerUpdated == 0)
+            throw new AppException("Not enough virtual currency");
+
         var listingUpdated = await _context.Listings
             .Where(l => l.Id == order.ListingId && l.Status == ListingStatus.Active && l.StockQuantity >= order.Quantity)
             .ExecuteUpdateAsync(setters => setters
@@ -145,16 +163,6 @@ public class OrdersController : ControllerBase
 
             throw new AppException("Order cannot be confirmed");
         }
-
-        var buyerUpdated = await _context.Users
-            .Where(u => u.Id == order.BuyerId && u.VirtualBalance >= order.Amount)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(u => u.VirtualBalance, u => u.VirtualBalance - order.Amount)
-                .SetProperty(u => u.UpdatedAt, now),
-                cancellationToken);
-
-        if (buyerUpdated == 0)
-            throw new AppException("Not enough virtual currency");
 
         var sellerUpdated = await _context.Users
             .Where(u => u.Id == order.SellerId)

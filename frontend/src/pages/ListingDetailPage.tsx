@@ -93,6 +93,12 @@ export default function ListingDetailPage() {
   }, [id, isAuthenticated])
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])
+  const isWalletLoading = isAuthenticated && !wallet
+  const isBalanceInsufficient = Boolean(isAuthenticated && wallet && wallet.balance < total)
+  const currentOrderAmount = currentOrder?.amount ?? 0
+  const isConfirmBalanceInsufficient = Boolean(isAuthenticated && wallet && currentOrder && wallet.balance < currentOrderAmount)
+  const balanceShortage = wallet ? Math.max(total - wallet.balance, 0) : 0
+  const confirmBalanceShortage = wallet ? Math.max(currentOrderAmount - wallet.balance, 0) : 0
   const galleryImages = useMemo(() => {
     if (!listing) return []
     const ordered = [...listing.images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder)
@@ -119,6 +125,15 @@ export default function ListingDetailPage() {
     if (!listing) return
     if (!isAuthenticated) {
       setError('Войдите в аккаунт, чтобы купить товар')
+      return
+    }
+
+    if (!wallet) {
+      setError('Баланс еще загружается. Попробуйте через пару секунд.')
+      return
+    }
+    if (wallet.balance < total) {
+      setError(`Недостаточно VT для покупки. Не хватает ${formatPrice(total - wallet.balance, 'VT')}.`)
       return
     }
 
@@ -162,6 +177,15 @@ export default function ListingDetailPage() {
 
   const confirmOrder = async () => {
     if (!currentOrder) return
+    if (!wallet) {
+      setError('Баланс еще загружается. Попробуйте через пару секунд.')
+      return
+    }
+    if (wallet.balance < currentOrder.amount) {
+      setError(`Недостаточно VT для подтверждения заказа. Не хватает ${formatPrice(currentOrder.amount - wallet.balance, 'VT')}.`)
+      return
+    }
+
     setBusy(true)
     setError('')
     setNotice('')
@@ -394,16 +418,26 @@ export default function ListingDetailPage() {
                 <Typography variant="h5" color="primary.main">{formatPrice(total, listing.currency)}</Typography>
               </Stack>
             </Paper>
+            {isBalanceInsufficient && !currentOrder && (
+              <Alert severity="warning">
+                Недостаточно VT для покупки. На балансе {formatPrice(wallet?.balance ?? 0, 'VT')}, не хватает {formatPrice(balanceShortage, 'VT')}.
+              </Alert>
+            )}
+            {isConfirmBalanceInsufficient && currentOrder?.status !== 'Completed' && (
+              <Alert severity="warning">
+                Недостаточно VT для подтверждения заказа. Нужно {formatPrice(currentOrderAmount, 'VT')}, не хватает {formatPrice(confirmBalanceShortage, 'VT')}.
+              </Alert>
+            )}
             {notice && <Alert severity="success">{notice}</Alert>}
             {error && <Alert severity="error">{error}</Alert>}
             {!currentOrder && (
-              <Button variant="contained" size="large" startIcon={<ShoppingCartCheckoutIcon />} disabled={busy || listing.stockQuantity <= 0} onClick={buy}>
+              <Button variant="contained" size="large" startIcon={<ShoppingCartCheckoutIcon />} disabled={busy || listing.stockQuantity <= 0 || isWalletLoading || isBalanceInsufficient} onClick={buy}>
                 Купить без списания баланса
               </Button>
             )}
             {currentOrder && currentOrder.status !== 'Completed' && (
               <Stack spacing={1.25}>
-                <Button variant="contained" size="large" disabled={busy || currentOrder.status === 'Disputed'} onClick={confirmOrder}>
+                <Button variant="contained" size="large" disabled={busy || currentOrder.status === 'Disputed' || isWalletLoading || isConfirmBalanceInsufficient} onClick={confirmOrder}>
                   Я проверил товар, подтвердить и списать баланс
                 </Button>
                 <Paper sx={{ p: 2, borderRadius: 2 }}>
