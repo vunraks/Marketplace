@@ -45,32 +45,9 @@ import { formatDateTime } from '../../utils/format'
 
 function playMessageNotificationSound() {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-
-    const audioContext = new AudioContextClass()
-    const firstTone = audioContext.createOscillator()
-    const secondTone = audioContext.createOscillator()
-    const gain = audioContext.createGain()
-    const now = audioContext.currentTime
-
-    firstTone.type = 'sine'
-    secondTone.type = 'sine'
-    firstTone.frequency.setValueAtTime(880, now)
-    secondTone.frequency.setValueAtTime(1174, now + 0.11)
-    gain.gain.setValueAtTime(0.0001, now)
-    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42)
-
-    firstTone.connect(gain)
-    secondTone.connect(gain)
-    gain.connect(audioContext.destination)
-
-    firstTone.start(now)
-    firstTone.stop(now + 0.16)
-    secondTone.start(now + 0.12)
-    secondTone.stop(now + 0.42)
-    secondTone.addEventListener('ended', () => void audioContext.close())
+    const audio = new Audio('/sounds/notification.mp3')
+    audio.volume = 0.65
+    void audio.play()
   } catch {
     // Browser may block audio until the user interacts with the page.
   }
