@@ -98,3 +98,6 @@ public record ListingFilterRequest(
 
 public record UpdateListingStatusRequest(
     string Status);
+
+public record AddListingImageUrlsRequest(
+    IReadOnlyList<string> Urls);

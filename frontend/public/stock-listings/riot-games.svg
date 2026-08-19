@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2c0d16"/><stop offset="1" stop-color="#07090f"/></linearGradient>
+    <radialGradient id="glow" cx=".72" cy=".28" r=".75"><stop stop-color="#ff4655" stop-opacity=".5"/><stop offset="1" stop-color="#ff4655" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <rect width="1200" height="760" fill="url(#glow)"/>
+  <path d="M802 168 1010 92l-36 404-120 74-34-214-92 44z" fill="#ff4655"/>
+  <path d="M910 572 1034 514l-14 92-110 64z" fill="#fff" opacity=".9"/>
+  <text x="88" y="282" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="92" font-weight="850">Riot Games</text>
+  <text x="92" y="366" fill="#ffc2c8" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="600">Valorant и League of Legends</text>
+  <text x="92" y="632" fill="#ff4655" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="800">VaultTrade Stock</text>
+</svg>

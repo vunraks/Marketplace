@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -25,6 +25,36 @@ type FormData = {
 function flattenCategories(cats: CategoryTree[]): CategoryTree[] {
   return cats.flatMap((category) => [category, ...flattenCategories(category.children ?? [])])
 }
+
+type StockImage = {
+  id: string
+  label: string
+  path: string
+  categorySlugs: string[]
+}
+
+const stockImages: StockImage[] = [
+  { id: 'steam-market', label: 'Steam', path: '/stock-listings/steam-market.svg', categorySlugs: ['steam'] },
+  { id: 'epic-games', label: 'Epic Games', path: '/stock-listings/epic-games.svg', categorySlugs: ['epic-games'] },
+  { id: 'riot-games', label: 'Riot Games', path: '/stock-listings/riot-games.svg', categorySlugs: ['riot-games'] },
+  { id: 'game-accounts', label: 'Игровые аккаунты', path: '/stock-listings/game-accounts.svg', categorySlugs: ['game-accounts', 'gaming-accounts', 'accounts'] },
+  { id: 'game-items', label: 'Игровые предметы', path: '/stock-listings/game-items.svg', categorySlugs: ['game-items', 'items'] },
+  { id: 'software', label: 'Программы', path: '/stock-listings/software.svg', categorySlugs: ['software', 'programs'] },
+  { id: 'license-keys', label: 'Ключи', path: '/stock-listings/license-keys.svg', categorySlugs: ['license-keys', 'keys'] },
+  { id: 'subscriptions', label: 'Подписки', path: '/stock-listings/subscriptions.svg', categorySlugs: ['subscriptions'] },
+  { id: 'digital-services', label: 'Цифровые услуги', path: '/stock-listings/digital-services.svg', categorySlugs: ['digital-services', 'services'] },
+]
+
+const getStockImagesForCategory = (slug?: string) => {
+  if (!slug) return stockImages
+
+  const normalized = slug.toLowerCase()
+  const matched = stockImages.filter((image) => image.categorySlugs.includes(normalized))
+
+  return matched.length > 0 ? matched : stockImages
+}
+
+const toAbsoluteStockUrl = (path: string) => `${window.location.origin}${path}`
 
 const getCreateListingError = (error: unknown, fallback: string) => {
   const status = typeof error === 'object' && error !== null && 'response' in error
@@ -50,6 +80,7 @@ export default function CreateListingPage() {
   const [loading, setLoading] = useState(isEditMode)
   const [files, setFiles] = useState<File[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [selectedStockImageIds, setSelectedStockImageIds] = useState<string[]>([])
 
   const schema = z.object({
     categoryId: z.string().min(1, t('selectCategory')),
@@ -61,10 +92,20 @@ export default function CreateListingPage() {
     tags: z.string().optional(),
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { categoryId: '', title: '', description: '', price: 0, stockQuantity: 1, deliveryInfo: '', tags: '' },
   })
+
+  const selectedCategoryId = watch('categoryId')
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === selectedCategoryId),
+    [categories, selectedCategoryId]
+  )
+  const visibleStockImages = useMemo(
+    () => getStockImagesForCategory(selectedCategory?.slug),
+    [selectedCategory?.slug]
+  )
 
   useEffect(() => {
     categoriesApi
@@ -110,6 +151,14 @@ export default function CreateListingPage() {
     setPreviewUrl(nextFiles[0] ? URL.createObjectURL(nextFiles[0]) : null)
   }
 
+  const toggleStockImage = (imageId: string) => {
+    setSelectedStockImageIds((current) =>
+      current.includes(imageId)
+        ? current.filter((id) => id !== imageId)
+        : [...current, imageId].slice(0, 6)
+    )
+  }
+
   const onSubmit = async (data: FormData) => {
     setSubmitting(true)
     setError('')
@@ -128,9 +177,15 @@ export default function CreateListingPage() {
         ? await listingsApi.update(id, payload)
         : await listingsApi.create(payload)
 
-      const finalListing = files.length > 0
+      const listingWithUploads = files.length > 0
         ? (await listingsApi.uploadImages(listing.id, files)).data
         : listing
+      const selectedStockUrls = stockImages
+        .filter((image) => selectedStockImageIds.includes(image.id))
+        .map((image) => toAbsoluteStockUrl(image.path))
+      const finalListing = selectedStockUrls.length > 0
+        ? (await listingsApi.addImageUrls(listingWithUploads.id, selectedStockUrls)).data
+        : listingWithUploads
 
       navigate(`/listing/${finalListing.id}`)
     } catch (e) {
@@ -218,6 +273,85 @@ export default function CreateListingPage() {
                   )}
                 </Box>
               </Stack>
+
+              <Box>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 1.5 }}>
+                  <Box>
+                    <Typography fontWeight={900}>Стоковая галерея</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Если нет своей картинки, выберите готовую обложку под категорию объявления.
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    color={selectedStockImageIds.length > 0 ? 'primary' : 'default'}
+                    label={`Выбрано: ${selectedStockImageIds.length}`}
+                    sx={{ fontWeight: 800 }}
+                  />
+                </Stack>
+
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
+                    gap: 1.25,
+                  }}
+                >
+                  {visibleStockImages.map((image) => {
+                    const selected = selectedStockImageIds.includes(image.id)
+                    return (
+                      <Box
+                        key={image.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => toggleStockImage(image.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            toggleStockImage(image.id)
+                          }
+                        }}
+                        sx={{
+                          position: 'relative',
+                          cursor: 'pointer',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          border: selected ? '2px solid #52e26f' : '1px solid rgba(255,255,255,0.1)',
+                          bgcolor: 'rgba(255,255,255,0.04)',
+                          boxShadow: selected ? '0 0 0 4px rgba(82,226,111,0.14)' : 'none',
+                          transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            borderColor: selected ? '#52e26f' : 'rgba(82,226,111,0.5)',
+                          },
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={image.path}
+                          alt={image.label}
+                          sx={{ display: 'block', width: '100%', aspectRatio: '16 / 10', objectFit: 'cover' }}
+                        />
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            left: 10,
+                            right: 10,
+                            bottom: 10,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Chip size="small" label={image.label} sx={{ fontWeight: 900, bgcolor: 'rgba(10,14,18,0.78)', color: '#fff' }} />
+                          {selected && <Chip size="small" color="primary" label="Выбрано" sx={{ fontWeight: 900 }} />}
+                        </Box>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              </Box>
             </Stack>
           </Paper>
 

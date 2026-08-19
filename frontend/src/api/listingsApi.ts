@@ -37,6 +37,8 @@ export const listingsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  addImageUrls: (id: string, urls: string[]) =>
+    axiosClient.post<ListingDetail>(`/listings/${id}/image-urls`, { urls }),
   update: (id: string, payload: CreateListingPayload) =>
     axiosClient.put<ListingDetail>(`/listings/${id}`, payload),
   updateStatus: (id: string, status: string) =>

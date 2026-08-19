@@ -151,6 +151,18 @@ public class ListingsController : ControllerBase
         return Created(string.Empty, listing);
     }
 
+    [HttpPost("{id:guid}/image-urls")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddImageUrls(Guid id, [FromBody] AddListingImageUrlsRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Urls is null || request.Urls.Count == 0)
+            return BadRequest(new { detail = "At least one image URL is required" });
+
+        var listing = await _listingService.AddImagesAsync(User.GetUserId(), id, request.Urls, cancellationToken);
+        return Created(string.Empty, listing);
+    }
+
     private async Task ValidateAsync<T>(T request, CancellationToken cancellationToken)
     {
         var validator = HttpContext.RequestServices.GetRequiredService<IValidator<T>>();
