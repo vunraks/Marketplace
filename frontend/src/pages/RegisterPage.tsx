@@ -20,21 +20,20 @@ type FormData = {
 }
 
 const googleButtonWrapSx = {
-  width: 58,
-  height: 58,
+  width: 54,
+  height: 54,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   borderRadius: '50%',
   p: 0,
-  border: '1px solid rgba(148, 163, 184, 0.22)',
-  background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.88))',
+  border: 0,
+  background: 'transparent',
   overflow: 'hidden',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 26px rgba(0,0,0,0.22)',
+  boxShadow: '0 14px 26px rgba(0,0,0,0.18)',
   transition: 'transform 160ms ease, border-color 160ms ease',
   '&:hover': {
     transform: 'translateY(-2px)',
-    borderColor: 'rgba(96, 165, 250, 0.52)',
   },
   '& > div': {
     width: '54px !important',
