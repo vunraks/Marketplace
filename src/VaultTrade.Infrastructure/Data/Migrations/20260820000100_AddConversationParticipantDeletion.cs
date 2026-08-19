@@ -1,11 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using VaultTrade.Infrastructure.Data;
 
 #nullable disable
 
 namespace VaultTrade.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260820000100_AddConversationParticipantDeletion")]
     public partial class AddConversationParticipantDeletion : Migration
     {
