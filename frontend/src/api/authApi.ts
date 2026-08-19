@@ -19,6 +19,16 @@ export interface ExternalLoginPayload {
   idToken: string
 }
 
+export interface TelegramLoginPayload {
+  id: number
+  firstName?: string
+  lastName?: string
+  username?: string
+  photoUrl?: string
+  authDate: number
+  hash: string
+}
+
 export interface ForgotPasswordPayload {
   email: string
 }
@@ -38,6 +48,8 @@ export const authApi = {
   login: (payload: LoginPayload) => axiosClient.post<AuthResponse>('/auth/login', payload),
   externalLogin: (provider: 'google', payload: ExternalLoginPayload) =>
     axiosClient.post<AuthResponse>(`/auth/external/${provider}`, payload),
+  telegramLogin: (payload: TelegramLoginPayload) =>
+    axiosClient.post<AuthResponse>('/auth/external/telegram', payload),
   externalLoginUrl: (provider: 'google' | 'steam') => `${authBaseUrl}/auth/external/${provider}`,
   forgotPassword: (payload: ForgotPasswordPayload) => axiosClient.post('/auth/forgot-password', payload),
   resetPassword: (payload: ResetPasswordPayload) => axiosClient.post('/auth/reset-password', payload),

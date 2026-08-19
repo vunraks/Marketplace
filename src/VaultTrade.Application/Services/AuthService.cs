@@ -78,16 +78,13 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> ExternalLoginAsync(string provider, ExternalLoginRequest request, string? ipAddress, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.IdToken))
-            throw new UnauthorizedAppException("External token is required");
-
         var normalizedProvider = provider.Trim().ToLowerInvariant();
-        if (normalizedProvider != "google")
-            throw new AppException("External provider is not supported", 404);
-
-        var externalUser = await _externalAuthTokenValidator.ValidateGoogleIdTokenAsync(request.IdToken, cancellationToken);
-        if (!externalUser.EmailVerified)
-            throw new UnauthorizedAppException("Google email is not verified");
+        var externalUser = normalizedProvider switch
+        {
+            "google" => await ValidateGoogleLoginAsync(request, cancellationToken),
+            "telegram" => await _externalAuthTokenValidator.ValidateTelegramLoginAsync(request, cancellationToken),
+            _ => throw new AppException("External provider is not supported", 404)
+        };
 
         var email = externalUser.Email.ToLowerInvariant();
         var user = await _unitOfWork.Users.GetByEmailAsync(email, cancellationToken);
@@ -102,7 +99,7 @@ public class AuthService : IAuthService
             {
                 Email = email,
                 Username = await GenerateExternalUsernameAsync(externalUser, cancellationToken),
-                PasswordHash = _passwordHasher.Hash($"google:{externalUser.ProviderUserId}:{Guid.NewGuid():N}"),
+                PasswordHash = _passwordHasher.Hash($"{normalizedProvider}:{externalUser.ProviderUserId}:{Guid.NewGuid():N}"),
                 ExternalProvider = normalizedProvider,
                 ExternalProviderUserId = externalUser.ProviderUserId,
                 IsEmailVerified = true,
@@ -128,6 +125,18 @@ public class AuthService : IAuthService
             _unitOfWork.Users.Update(user);
 
         return await CreateAuthResponseAsync(user, ipAddress, cancellationToken);
+    }
+
+    private async Task<ExternalUserInfo> ValidateGoogleLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+            throw new UnauthorizedAppException("External token is required");
+
+        var externalUser = await _externalAuthTokenValidator.ValidateGoogleIdTokenAsync(request.IdToken, cancellationToken);
+        if (!externalUser.EmailVerified)
+            throw new UnauthorizedAppException("Google email is not verified");
+
+        return externalUser;
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, CancellationToken cancellationToken = default)

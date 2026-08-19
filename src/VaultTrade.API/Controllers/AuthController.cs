@@ -39,7 +39,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ExternalLogin(string provider, [FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
     {
         var normalizedProvider = provider.Trim().ToLowerInvariant();
-        if (normalizedProvider != "google")
+        if (normalizedProvider is not ("google" or "telegram"))
             return NotFound(new { detail = "External provider is not supported" });
 
         var result = await _authService.ExternalLoginAsync(normalizedProvider, request, HttpContext.GetClientIpAddress(), cancellationToken);

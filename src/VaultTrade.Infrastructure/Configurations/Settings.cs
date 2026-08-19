@@ -22,9 +22,16 @@ public class ExternalAuthSettings
 {
     public const string SectionName = "Authentication";
     public GoogleAuthSettings Google { get; set; } = new();
+    public TelegramAuthSettings Telegram { get; set; } = new();
 }
 
 public class GoogleAuthSettings
 {
     public string ClientId { get; set; } = string.Empty;
+}
+
+public class TelegramAuthSettings
+{
+    public string BotToken { get; set; } = string.Empty;
+    public string BotUsername { get; set; } = string.Empty;
 }

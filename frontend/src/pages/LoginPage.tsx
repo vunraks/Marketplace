@@ -7,8 +7,9 @@ import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import LoginIcon from '@mui/icons-material/Login'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { clearError, login, loginWithGoogle } from '../store/authSlice'
+import { clearError, login, loginWithGoogle, loginWithTelegram } from '../store/authSlice'
 import { renderGoogleSignInButton } from '../utils/googleAuth'
+import { renderTelegramLoginButton, type TelegramAuthPayload } from '../utils/telegramAuth'
 import { useTranslation } from '../i18n/LanguageProvider'
 
 type FormData = {
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const { loading, error } = useAppSelector((s) => s.auth)
   const [googleError, setGoogleError] = useState('')
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  const telegramButtonRef = useRef<HTMLDivElement | null>(null)
 
   const schema = z.object({
     email: z.string().email(t('emailInvalid')),
@@ -50,6 +52,21 @@ export default function LoginPage() {
     }
   }
 
+  const submitTelegramLogin = async (payload: TelegramAuthPayload) => {
+    dispatch(clearError())
+    setGoogleError('')
+    const result = await dispatch(loginWithTelegram({
+      id: payload.id,
+      firstName: payload.first_name,
+      lastName: payload.last_name,
+      username: payload.username,
+      photoUrl: payload.photo_url,
+      authDate: payload.auth_date,
+      hash: payload.hash,
+    }))
+    if (loginWithTelegram.fulfilled.match(result)) navigate('/')
+  }
+
   useEffect(() => {
     if (!googleButtonRef.current) return
 
@@ -59,6 +76,16 @@ export default function LoginPage() {
       setGoogleError,
       'signin_with',
     ).catch((e) => setGoogleError(e instanceof Error ? e.message : 'Google sign-in failed'))
+  }, [])
+
+  useEffect(() => {
+    if (!telegramButtonRef.current) return undefined
+
+    return renderTelegramLoginButton(
+      telegramButtonRef.current,
+      (payload) => void submitTelegramLogin(payload),
+      setGoogleError,
+    )
   }, [])
 
   return (
@@ -72,6 +99,7 @@ export default function LoginPage() {
 
       <Stack spacing={1.25}>
         <Box ref={googleButtonRef} sx={{ minHeight: 44, display: 'flex', justifyContent: 'center' }} />
+        <Box ref={telegramButtonRef} sx={{ minHeight: 44, display: 'flex', justifyContent: 'center' }} />
         <Button variant="outlined" size="large" startIcon={<SportsEsportsIcon />} disabled>
           {t('loginSteam')}
         </Button>

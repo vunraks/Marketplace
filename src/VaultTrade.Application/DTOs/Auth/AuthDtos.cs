@@ -13,8 +13,24 @@ public record LoginRequest(
 public record RefreshTokenRequest(
     string RefreshToken);
 
-public record ExternalLoginRequest(
-    string IdToken);
+public class ExternalLoginRequest
+{
+    public string? IdToken { get; init; }
+
+    public long? Id { get; init; }
+
+    public string? FirstName { get; init; }
+
+    public string? LastName { get; init; }
+
+    public string? Username { get; init; }
+
+    public string? PhotoUrl { get; init; }
+
+    public long? AuthDate { get; init; }
+
+    public string? Hash { get; init; }
+}
 
 public record ForgotPasswordRequest(
     string Email);

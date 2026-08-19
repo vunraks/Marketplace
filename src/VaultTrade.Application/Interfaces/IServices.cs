@@ -20,6 +20,7 @@ public interface IAuthService
 public interface IExternalAuthTokenValidator
 {
     Task<ExternalUserInfo> ValidateGoogleIdTokenAsync(string idToken, CancellationToken cancellationToken = default);
+    Task<ExternalUserInfo> ValidateTelegramLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken = default);
 }
 
 public interface IUserService
