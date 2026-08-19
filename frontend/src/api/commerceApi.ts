@@ -33,6 +33,8 @@ export const commerceApi = {
     axiosClient.post<Conversation>(`/conversations/${conversationId}/messages`, { content }),
   closeConversation: (conversationId: string) =>
     axiosClient.post<Conversation>(`/conversations/${conversationId}/close`),
+  deleteConversation: (conversationId: string) =>
+    axiosClient.delete(`/conversations/${conversationId}`),
   getSellerReviews: (sellerId: string) =>
     axiosClient.get<SellerReview[]>(`/reviews/sellers/${sellerId}`),
   createReview: (orderId: string, rating: number, comment?: string) =>

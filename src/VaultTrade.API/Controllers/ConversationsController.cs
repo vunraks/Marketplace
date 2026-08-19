@@ -36,8 +36,7 @@ public class ConversationsController : ControllerBase
             .Include(c => c.Listing)
             .AsSplitQuery()
             .Where(c =>
-                c.Participants.Any(p => p.UserId == userId) &&
-                c.Participants.Count >= 2)
+                c.Participants.Any(p => p.UserId == userId && !p.IsDeleted))
             .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -69,7 +68,7 @@ public class ConversationsController : ControllerBase
             var sellerConversationId = await _context.Conversations
                 .Where(c =>
                     c.ListingId == listingId &&
-                    c.Participants.Any(p => p.UserId == userId) &&
+                    c.Participants.Any(p => p.UserId == userId && !p.IsDeleted) &&
                     c.Participants.Count >= 2)
                 .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
                 .Select(c => c.Id)
@@ -98,12 +97,30 @@ public class ConversationsController : ControllerBase
 
         var userId = User.GetUserId();
         var isParticipant = await _context.ConversationParticipants
-            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken);
+            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId && !p.IsDeleted, cancellationToken);
 
         if (!isParticipant)
             throw new ForbiddenException("You are not a participant of this conversation");
 
         return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
+    }
+
+    [HttpDelete("{conversationId:guid}")]
+    public async Task<IActionResult> DeleteForMe(Guid conversationId, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var participant = await _context.ConversationParticipants
+            .FirstOrDefaultAsync(p => p.ConversationId == conversationId && p.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Conversation not found");
+
+        if (!participant.IsDeleted)
+        {
+            participant.IsDeleted = true;
+            participant.DeletedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return NoContent();
     }
 
     [HttpPost("{conversationId:guid}/close")]
@@ -221,7 +238,7 @@ public class ConversationsController : ControllerBase
             .FirstOrDefaultAsync(cancellationToken);
 
         var recipientIds = await _context.ConversationParticipants
-            .Where(p => p.ConversationId == conversationId && p.UserId != userId)
+            .Where(p => p.ConversationId == conversationId && p.UserId != userId && !p.IsDeleted)
             .Select(p => p.UserId)
             .ToListAsync(cancellationToken);
 
@@ -289,8 +306,8 @@ public class ConversationsController : ControllerBase
                 c.ListingId == null &&
                 c.OrderId == null &&
                 !c.IsClosed &&
-                c.Participants.Any(p => p.UserId == userId) &&
-                c.Participants.Any(p => p.UserId != userId && p.User.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator)))
+                c.Participants.Any(p => p.UserId == userId && !p.IsDeleted) &&
+                c.Participants.Any(p => p.UserId != userId && !p.IsDeleted && p.User.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator)))
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
@@ -345,8 +362,8 @@ public class ConversationsController : ControllerBase
         var conversation = await _context.Conversations
             .FirstOrDefaultAsync(c =>
                 c.ListingId == listingId &&
-                c.Participants.Any(p => p.UserId == buyerId) &&
-                c.Participants.Any(p => p.UserId == sellerId),
+                c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
+                c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted),
                 cancellationToken);
 
         if (conversation is not null)

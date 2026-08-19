@@ -246,6 +246,12 @@ namespace VaultTrade.Infrastructure.Data.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 

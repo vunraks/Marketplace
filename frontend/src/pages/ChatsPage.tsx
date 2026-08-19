@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@
 import HeadsetMicOutlinedIcon from '@mui/icons-material/HeadsetMicOutlined'
 import SendIcon from '@mui/icons-material/Send'
 import LockIcon from '@mui/icons-material/Lock'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { Link as RouterLink } from 'react-router-dom'
 import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -112,6 +113,26 @@ export default function ChatsPage() {
     }
   }
 
+  const deleteChat = async () => {
+    if (!isRealConversation(active)) return
+    const deleteId = active!.id
+    setBusy(true)
+    setError('')
+    try {
+      await commerceApi.deleteConversation(deleteId)
+      setConversations((items) => {
+        const nextItems = items.filter((item) => item.id !== deleteId)
+        setActive(nextItems[0] ?? null)
+        return nextItems
+      })
+      setMessage('')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось удалить чат'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading) return <LoadingSpinner />
 
   const activeOther = active ? otherParticipant(active, user?.id) : undefined
@@ -199,6 +220,11 @@ export default function ChatsPage() {
                     {canCloseActive && (
                       <Button size="small" color="warning" variant="outlined" startIcon={<LockIcon />} disabled={busy} onClick={closeChat}>
                         Завершить чат
+                      </Button>
+                    )}
+                    {isRealConversation(active) && (
+                      <Button size="small" color="error" variant="outlined" startIcon={<DeleteOutlineIcon />} disabled={busy} onClick={deleteChat}>
+                        Удалить
                       </Button>
                     )}
                   </Stack>
