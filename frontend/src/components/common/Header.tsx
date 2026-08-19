@@ -1,4 +1,4 @@
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   AppBar,
   Avatar,
@@ -43,8 +43,42 @@ import { commerceApi } from '../../api/commerceApi'
 import type { NotificationItem } from '../../types'
 import { formatDateTime } from '../../utils/format'
 
+function playMessageNotificationSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioContextClass) return
+
+    const audioContext = new AudioContextClass()
+    const firstTone = audioContext.createOscillator()
+    const secondTone = audioContext.createOscillator()
+    const gain = audioContext.createGain()
+    const now = audioContext.currentTime
+
+    firstTone.type = 'sine'
+    secondTone.type = 'sine'
+    firstTone.frequency.setValueAtTime(880, now)
+    secondTone.frequency.setValueAtTime(1174, now + 0.11)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42)
+
+    firstTone.connect(gain)
+    secondTone.connect(gain)
+    gain.connect(audioContext.destination)
+
+    firstTone.start(now)
+    firstTone.stop(now + 0.16)
+    secondTone.start(now + 0.12)
+    secondTone.stop(now + 0.42)
+    secondTone.addEventListener('ended', () => void audioContext.close())
+  } catch {
+    // Browser may block audio until the user interacts with the page.
+  }
+}
+
 export default function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useAppDispatch()
   const { isAuthenticated, user, profile } = useAppSelector((s) => s.auth)
   const { language, setLanguage, t, languageLabels, supportedLanguages } = useTranslation()
@@ -59,13 +93,21 @@ export default function Header() {
   const isModerator = user?.roles.some((role) => ['Moderator', 'Admin'].includes(role))
   const isAdmin = user?.roles.includes('Admin')
   const balance = profile?.virtualBalance ?? user?.virtualBalance ?? 0
+  const isChatsPage = location.pathname.startsWith('/chats')
 
   useEffect(() => {
     if (!isAuthenticated) return
 
     return onNotificationReceived((notification) => {
+      const isChatNotification = notification.type === 'message' || notification.type === 'chat_opened'
+
       setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)].slice(0, 30))
-      setToast(notification)
+      if (!isChatsPage || !isChatNotification) {
+        setToast(notification)
+      }
+      if (isChatNotification && !isChatsPage) {
+        playMessageNotificationSound()
+      }
 
       if (
         notification.type === 'promo_bonus' ||
@@ -76,7 +118,7 @@ export default function Header() {
         void dispatch(fetchProfile())
       }
     })
-  }, [dispatch, isAuthenticated])
+  }, [dispatch, isAuthenticated, isChatsPage])
 
   const closeMenu = () => setAnchor(null)
   const closeNotifications = () => setNotificationAnchor(null)
