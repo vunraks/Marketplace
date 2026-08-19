@@ -5,6 +5,7 @@ type GoogleCredentialResponse = {
 }
 
 type GoogleButtonText = 'signin_with' | 'signup_with' | 'continue_with'
+type GoogleButtonType = 'standard' | 'icon'
 
 declare global {
   interface Window {
@@ -22,6 +23,7 @@ declare global {
             theme?: 'outline' | 'filled_blue' | 'filled_black'
             size?: 'large' | 'medium' | 'small'
             text?: GoogleButtonText
+            type?: GoogleButtonType
             shape?: 'rectangular' | 'pill' | 'circle' | 'square'
             width?: number | string
             locale?: string
@@ -86,6 +88,7 @@ export const renderGoogleSignInButton = async (
   onCredential: (idToken: string) => void,
   onError: (message: string) => void,
   text: GoogleButtonText = 'signin_with',
+  type: GoogleButtonType = 'standard',
 ) => {
   if (!googleClientId) {
     onError('Google Client ID не настроен')
@@ -99,12 +102,13 @@ export const renderGoogleSignInButton = async (
   initializeGoogle()
 
   parent.innerHTML = ''
-  const width = Math.min(Math.max(parent.clientWidth || 360, 320), 520)
+  const width = type === 'icon' ? 54 : Math.min(Math.max(parent.clientWidth || 360, 320), 520)
   window.google?.accounts.id.renderButton(parent, {
     theme: 'filled_black',
     size: 'large',
     text,
-    shape: 'rectangular',
+    type,
+    shape: type === 'icon' ? 'circle' : 'rectangular',
     width,
     locale: 'ru',
   })

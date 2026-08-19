@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Typography, TextField, Button, Alert, Link, Stack, Divider, Box } from '@mui/material'
-import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
+import { Alert, Box, Button, Divider, Link, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import LoginIcon from '@mui/icons-material/Login'
 import SendIcon from '@mui/icons-material/Send'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
@@ -18,38 +17,46 @@ type FormData = {
   password: string
 }
 
-const socialButtonSx = {
-  height: 54,
-  borderRadius: 2,
-  justifyContent: 'center',
-  fontWeight: 800,
-  textTransform: 'none',
-  borderColor: 'rgba(148, 163, 184, 0.24)',
-  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86))',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 28px rgba(0,0,0,0.18)',
-  '&:hover': {
-    borderColor: 'rgba(96, 165, 250, 0.46)',
-    background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.92))',
-    transform: 'translateY(-1px)',
-  },
-}
-
 const googleButtonWrapSx = {
-  minHeight: 54,
-  width: '100%',
+  width: 58,
+  height: 58,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  borderRadius: 2,
+  borderRadius: '50%',
   p: 0,
-  border: '1px solid rgba(148, 163, 184, 0.16)',
-  background: 'rgba(2, 6, 23, 0.28)',
+  border: '1px solid rgba(148, 163, 184, 0.22)',
+  background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.88))',
   overflow: 'hidden',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 26px rgba(0,0,0,0.22)',
+  transition: 'transform 160ms ease, border-color 160ms ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    borderColor: 'rgba(96, 165, 250, 0.52)',
+  },
   '& > div': {
-    width: '100% !important',
+    width: '54px !important',
+    height: '54px !important',
   },
   '& iframe': {
-    width: '100% !important',
+    width: '54px !important',
+    height: '54px !important',
+  },
+}
+
+const iconLoginButtonSx = {
+  width: 58,
+  height: 58,
+  minWidth: 58,
+  borderRadius: '50%',
+  color: '#ffffff',
+  borderColor: 'rgba(56, 189, 248, 0.42)',
+  background: 'linear-gradient(145deg, #2aabee, #22c55e)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 14px 26px rgba(34, 197, 94, 0.18)',
+  '&:hover': {
+    borderColor: 'rgba(186, 230, 253, 0.82)',
+    background: 'linear-gradient(145deg, #0ea5e9, #22c55e)',
+    transform: 'translateY(-2px)',
   },
 }
 
@@ -58,7 +65,7 @@ export default function LoginPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { loading, error } = useAppSelector((s) => s.auth)
-  const [googleError, setGoogleError] = useState('')
+  const [externalError, setExternalError] = useState('')
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
 
   const schema = z.object({
@@ -78,22 +85,22 @@ export default function LoginPage() {
 
   const submitGoogleToken = async (idToken: string) => {
     dispatch(clearError())
-    setGoogleError('')
+    setExternalError('')
     try {
       const result = await dispatch(loginWithGoogle(idToken))
       if (loginWithGoogle.fulfilled.match(result)) navigate('/')
     } catch (e) {
-      setGoogleError(e instanceof Error ? e.message : 'Google sign-in failed')
+      setExternalError(e instanceof Error ? e.message : 'Google sign-in failed')
     }
   }
 
   const startTelegramLogin = async () => {
     dispatch(clearError())
-    setGoogleError('')
+    setExternalError('')
     try {
       await startTelegramOidcLogin()
     } catch (e) {
-      setGoogleError(e instanceof Error ? e.message : 'Telegram sign-in failed')
+      setExternalError(e instanceof Error ? e.message : 'Telegram sign-in failed')
     }
   }
 
@@ -103,9 +110,10 @@ export default function LoginPage() {
     renderGoogleSignInButton(
       googleButtonRef.current,
       (idToken) => void submitGoogleToken(idToken),
-      setGoogleError,
+      setExternalError,
       'signin_with',
-    ).catch((e) => setGoogleError(e instanceof Error ? e.message : 'Google sign-in failed'))
+      'icon',
+    ).catch((e) => setExternalError(e instanceof Error ? e.message : 'Google sign-in failed'))
   }, [])
 
   return (
@@ -117,49 +125,28 @@ export default function LoginPage() {
         </Typography>
       </Box>
 
-      <Stack spacing={1.25}>
-        <Button
-          variant="outlined"
-          size="large"
-          startIcon={<SendIcon />}
-          onClick={() => void startTelegramLogin()}
-          sx={{
-            ...socialButtonSx,
-            color: '#e8f7ff',
-            borderColor: 'rgba(56, 189, 248, 0.42)',
-            background: 'linear-gradient(135deg, rgba(42, 171, 238, 0.95), rgba(34, 197, 94, 0.82))',
-            '&:hover': {
-              borderColor: 'rgba(186, 230, 253, 0.82)',
-              background: 'linear-gradient(135deg, rgba(14, 165, 233, 1), rgba(34, 197, 94, 0.95))',
-              transform: 'translateY(-1px)',
-            },
-          }}
-        >
-          Войти через Telegram
-        </Button>
-        <Box ref={googleButtonRef} sx={googleButtonWrapSx} />
-        <Button
-          variant="outlined"
-          size="large"
-          startIcon={<SportsEsportsIcon />}
-          disabled
-          sx={{
-            ...socialButtonSx,
-            color: 'rgba(226, 232, 240, 0.62)',
-            '&.Mui-disabled': {
-              color: 'rgba(226, 232, 240, 0.46)',
-              borderColor: 'rgba(148, 163, 184, 0.18)',
-              background: 'rgba(15, 23, 42, 0.42)',
-            },
-          }}
-        >
-          {t('loginSteam')}
-        </Button>
+      <Stack spacing={1.25} sx={{ alignItems: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography fontWeight={800}>Быстрый вход</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Выберите удобный сервис
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
+          <Tooltip title="Войти через Telegram">
+            <Button variant="outlined" aria-label="Войти через Telegram" onClick={() => void startTelegramLogin()} sx={iconLoginButtonSx}>
+              <SendIcon />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Войти через Google">
+            <Box ref={googleButtonRef} sx={googleButtonWrapSx} />
+          </Tooltip>
+        </Stack>
       </Stack>
 
       <Divider sx={{ my: 3 }}>{t('or')}</Divider>
 
-      {(error || googleError) && <Alert severity="error" sx={{ mb: 2 }}>{error || googleError}</Alert>}
+      {(error || externalError) && <Alert severity="error" sx={{ mb: 2 }}>{error || externalError}</Alert>}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={1.75}>
           <TextField fullWidth label="Email" autoComplete="email" {...register('email')} error={!!errors.email} helperText={errors.email?.message} />
