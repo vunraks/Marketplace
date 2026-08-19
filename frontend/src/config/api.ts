@@ -1,6 +1,5 @@
 const productionApiUrl = 'https://marketplace-1-wbt4.onrender.com/api/v1'
 const defaultGoogleClientId = '689780156024-7uahkekh3ol3f9du70k667it8or37i6d.apps.googleusercontent.com'
-const defaultTelegramBotUsername = 'VaultTrade1_Bot'
 
 export const apiBaseUrl =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -15,5 +14,4 @@ export const googleClientId =
   defaultGoogleClientId
 
 export const telegramBotUsername =
-  (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined) ??
-  defaultTelegramBotUsername
+  (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined)?.trim().replace(/^@/, '') ?? ''
