@@ -13,5 +13,5 @@ export const googleClientId =
   (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ??
   defaultGoogleClientId
 
-export const telegramBotUsername =
-  (import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined)?.trim().replace(/^@/, '') ?? ''
+export const telegramClientId =
+  (import.meta.env.VITE_TELEGRAM_CLIENT_ID as string | undefined)?.trim() ?? ''

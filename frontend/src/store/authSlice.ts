@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit'
-import { authApi, type LoginPayload, type RegisterPayload, type TelegramLoginPayload } from '../api/authApi'
+import {
+  authApi,
+  type LoginPayload,
+  type RegisterPayload,
+  type TelegramOidcLoginPayload,
+} from '../api/authApi'
 import { usersApi } from '../api/usersApi'
 import type { UserProfile, UserSummary } from '../types'
 import { storage } from '../utils/storage'
@@ -53,11 +58,11 @@ export const loginWithGoogle = createAsyncThunk('auth/googleLogin', async (idTok
   }
 })
 
-export const loginWithTelegram = createAsyncThunk(
-  'auth/telegramLogin',
-  async (payload: TelegramLoginPayload, { rejectWithValue }) => {
+export const loginWithTelegramOidc = createAsyncThunk(
+  'auth/telegramOidcLogin',
+  async (payload: TelegramOidcLoginPayload, { rejectWithValue }) => {
     try {
-      const { data } = await authApi.telegramLogin(payload)
+      const { data } = await authApi.telegramOidcLogin(payload)
       storage.setAuth(data.accessToken, data.refreshToken, data.user)
       return data.user
     } catch (e) {
@@ -155,16 +160,16 @@ const authSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
-      .addCase(loginWithTelegram.pending, (state) => {
+      .addCase(loginWithTelegramOidc.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(loginWithTelegram.fulfilled, (state, action) => {
+      .addCase(loginWithTelegramOidc.fulfilled, (state, action) => {
         state.loading = false
         state.user = action.payload
         state.isAuthenticated = true
       })
-      .addCase(loginWithTelegram.rejected, (state, action) => {
+      .addCase(loginWithTelegramOidc.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })

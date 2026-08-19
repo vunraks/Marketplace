@@ -25,6 +25,7 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/ResetPasswordPage'
 import OrderHistoryPage from '../pages/OrderHistoryPage'
 import ListingSubmittedPage from '../pages/ListingSubmittedPage'
+import TelegramCallbackPage from '../pages/TelegramCallbackPage'
 
 export default function AppRoutes() {
   return (
@@ -68,6 +69,7 @@ export default function AppRoutes() {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />
+        <Route path="auth/telegram/callback" element={<TelegramCallbackPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

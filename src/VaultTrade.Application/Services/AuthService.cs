@@ -86,6 +86,21 @@ public class AuthService : IAuthService
             _ => throw new AppException("External provider is not supported", 404)
         };
 
+        return await SignInExternalUserAsync(normalizedProvider, externalUser, ipAddress, cancellationToken);
+    }
+
+    public async Task<AuthResponse> TelegramOidcLoginAsync(TelegramOidcLoginRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    {
+        var externalUser = await _externalAuthTokenValidator.ValidateTelegramOidcAsync(request, cancellationToken);
+        return await SignInExternalUserAsync("telegram", externalUser, ipAddress, cancellationToken);
+    }
+
+    private async Task<AuthResponse> SignInExternalUserAsync(
+        string normalizedProvider,
+        ExternalUserInfo externalUser,
+        string? ipAddress,
+        CancellationToken cancellationToken)
+    {
         var email = externalUser.Email.ToLowerInvariant();
         var user = await _unitOfWork.Users.GetByEmailAsync(email, cancellationToken);
         var isNewUser = user is null;

@@ -46,6 +46,15 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("external/telegram/oidc")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TelegramOidcLogin([FromBody] TelegramOidcLoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.TelegramOidcLoginAsync(request, HttpContext.GetClientIpAddress(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)

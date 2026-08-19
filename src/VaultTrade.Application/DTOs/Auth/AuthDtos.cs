@@ -13,6 +13,11 @@ public record LoginRequest(
 public record RefreshTokenRequest(
     string RefreshToken);
 
+public record TelegramOidcLoginRequest(
+    string Code,
+    string RedirectUri,
+    string CodeVerifier);
+
 public class ExternalLoginRequest
 {
     public string? IdToken { get; init; }

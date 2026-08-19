@@ -11,6 +11,7 @@ public interface IAuthService
     Task<RegisterResponse> RegisterAsync(RegisterRequest request, string? ipAddress, CancellationToken cancellationToken = default);
     Task<AuthResponse> LoginAsync(LoginRequest request, string? ipAddress, CancellationToken cancellationToken = default);
     Task<AuthResponse> ExternalLoginAsync(string provider, ExternalLoginRequest request, string? ipAddress, CancellationToken cancellationToken = default);
+    Task<AuthResponse> TelegramOidcLoginAsync(TelegramOidcLoginRequest request, string? ipAddress, CancellationToken cancellationToken = default);
     Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, CancellationToken cancellationToken = default);
     Task LogoutAsync(Guid userId, RefreshTokenRequest request, CancellationToken cancellationToken = default);
     Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default);
@@ -21,6 +22,7 @@ public interface IExternalAuthTokenValidator
 {
     Task<ExternalUserInfo> ValidateGoogleIdTokenAsync(string idToken, CancellationToken cancellationToken = default);
     Task<ExternalUserInfo> ValidateTelegramLoginAsync(ExternalLoginRequest request, CancellationToken cancellationToken = default);
+    Task<ExternalUserInfo> ValidateTelegramOidcAsync(TelegramOidcLoginRequest request, CancellationToken cancellationToken = default);
 }
 
 public interface IUserService
