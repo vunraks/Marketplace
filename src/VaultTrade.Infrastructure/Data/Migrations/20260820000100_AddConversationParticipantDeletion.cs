@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace VaultTrade.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
+    [Migration("20260820000100_AddConversationParticipantDeletion")]
     public partial class AddConversationParticipantDeletion : Migration
     {
         /// <inheritdoc />
