@@ -187,7 +187,16 @@ export default function CreateListingPage() {
         ? (await listingsApi.addImageUrls(listingWithUploads.id, selectedStockUrls)).data
         : listingWithUploads
 
-      navigate(`/listing/${finalListing.id}`)
+      if (isEditMode) {
+        navigate(`/listing/${finalListing.id}`)
+      } else {
+        navigate(`/my-listings/submitted/${finalListing.id}`, {
+          state: {
+            title: finalListing.title,
+            status: finalListing.status,
+          },
+        })
+      }
     } catch (e) {
       setError(getCreateListingError(e, isEditMode ? t('saveListingFail') : t('createListingFail')))
     } finally {

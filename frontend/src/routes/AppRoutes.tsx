@@ -24,6 +24,7 @@ import DisputesPage from '../pages/DisputesPage'
 import ForgotPasswordPage from '../pages/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/ResetPasswordPage'
 import OrderHistoryPage from '../pages/OrderHistoryPage'
+import ListingSubmittedPage from '../pages/ListingSubmittedPage'
 
 export default function AppRoutes() {
   return (
@@ -48,6 +49,7 @@ export default function AppRoutes() {
           <Route path="seller-dashboard" element={<SellerDashboardPage />} />
           <Route path="my-listings" element={<MyListingsPage />} />
           <Route path="my-listings/create" element={<CreateListingPage />} />
+          <Route path="my-listings/submitted/:id" element={<ListingSubmittedPage />} />
           <Route path="my-listings/:id/edit" element={<CreateListingPage />} />
         </Route>
 
