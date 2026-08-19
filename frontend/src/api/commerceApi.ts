@@ -22,8 +22,11 @@ export const commerceApi = {
   getActiveOrderForListing: (listingId: string) => axiosClient.get<Order | null>(`/orders/listings/${listingId}/active`),
   confirmOrder: (orderId: string) => axiosClient.post<Order>(`/orders/${orderId}/confirm`),
   getConversations: () => axiosClient.get<Conversation[]>('/conversations'),
+  getSupportConversation: () => axiosClient.get<Conversation>('/conversations/support'),
   getConversationForListing: (listingId: string) =>
     axiosClient.get<Conversation>(`/conversations/listings/${listingId}`),
+  sendSupportMessage: (content: string) =>
+    axiosClient.post<Conversation>('/conversations/support/messages', { content }),
   sendListingMessage: (listingId: string, content: string) =>
     axiosClient.post<Conversation>(`/conversations/listings/${listingId}/messages`, { content }),
   sendConversationMessage: (conversationId: string, content: string) =>

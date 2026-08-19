@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Box, Container } from '@mui/material'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import SupportChatWidget from '../components/common/SupportChatWidget'
 
 export default function MainLayout() {
   return (
@@ -10,6 +11,7 @@ export default function MainLayout() {
       <Container maxWidth="xl" className="page-container" sx={{ flex: 1 }}>
         <Outlet />
       </Container>
+      <SupportChatWidget />
       <Footer />
     </Box>
   )

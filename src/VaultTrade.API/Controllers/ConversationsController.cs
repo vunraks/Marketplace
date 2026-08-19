@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VaultTrade.API.Extensions;
 using VaultTrade.API.Services;
 using VaultTrade.Application.Common;
+using VaultTrade.Domain.Constants;
 using VaultTrade.Domain.Entities;
 using VaultTrade.Domain.Enums;
 using VaultTrade.Infrastructure.Data;
@@ -41,6 +42,19 @@ public class ConversationsController : ControllerBase
             .ToListAsync(cancellationToken);
 
         return Ok(conversations.Select(ToDto).ToList());
+    }
+
+    [HttpGet("support")]
+    public async Task<IActionResult> GetSupport(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var conversationId = await FindSupportConversationIdAsync(userId, cancellationToken);
+
+        if (conversationId == Guid.Empty)
+            return Ok(EmptySupportConversationDto());
+
+        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
+        return Ok(ToDto(conversation));
     }
 
     [HttpGet("listings/{listingId:guid}")]
@@ -103,8 +117,11 @@ public class ConversationsController : ControllerBase
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
             ?? throw new NotFoundException("Conversation not found");
 
-        if (conversation.Listing?.SellerId != userId)
-            throw new ForbiddenException("Only seller can close this chat");
+        var isSupportConversation = conversation.ListingId is null && conversation.OrderId is null;
+        var canCloseSupport = isSupportConversation && await IsStaffAsync(userId, cancellationToken);
+
+        if (conversation.Listing?.SellerId != userId && !canCloseSupport)
+            throw new ForbiddenException(isSupportConversation ? "Only support staff can close this chat" : "Only seller can close this chat");
 
         if (!conversation.IsClosed)
         {
@@ -156,6 +173,17 @@ public class ConversationsController : ControllerBase
             : null;
 
         return await AddMessageAsync(openResult.ConversationId, userId, request.Content.Trim(), cancellationToken, openedNotification);
+    }
+
+    [HttpPost("support/messages")]
+    public async Task<IActionResult> SendToSupport([FromBody] SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
+            throw new AppException("Message cannot be empty");
+
+        var userId = User.GetUserId();
+        var conversationId = await GetOrOpenSupportConversationAsync(userId, cancellationToken);
+        return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
     }
 
     private async Task<IActionResult> AddMessageAsync(
@@ -230,6 +258,57 @@ public class ConversationsController : ControllerBase
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private async Task<Guid> FindSupportConversationIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await _context.Conversations
+            .Where(c =>
+                c.ListingId == null &&
+                c.OrderId == null &&
+                c.Participants.Any(p => p.UserId == userId) &&
+                c.Participants.Any(p => p.UserId != userId && p.User.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator)))
+            .OrderByDescending(c => c.CreatedAt)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<Guid> GetOrOpenSupportConversationAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var existingId = await FindSupportConversationIdAsync(userId, cancellationToken);
+        if (existingId != Guid.Empty)
+            return existingId;
+
+        var staffIds = await _context.Users
+            .Where(u => u.IsActive && !u.IsBlocked && u.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator))
+            .OrderBy(u => u.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin) ? 0 : 1)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+        if (staffIds.Count == 0)
+            throw new AppException("Support is temporarily unavailable");
+
+        var now = DateTime.UtcNow;
+        var conversation = new Conversation { OpenedAt = now };
+        _context.Conversations.Add(conversation);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var participantIds = new[] { userId }.Concat(staffIds).Distinct().ToList();
+        _context.ConversationParticipants.AddRange(participantIds.Select(participantId => new ConversationParticipant
+        {
+            ConversationId = conversation.Id,
+            UserId = participantId,
+            JoinedAt = now
+        }));
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return conversation.Id;
+    }
+
+    private async Task<bool> IsStaffAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await _context.Users
+            .AnyAsync(u => u.Id == userId && u.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin || ur.Role.Name == RoleNames.Moderator), cancellationToken);
+    }
+
     private async Task<ConversationOpenResult> GetOrOpenBuyerSellerConversationAsync(
         Guid listingId,
         Guid buyerId,
@@ -291,6 +370,20 @@ public class ConversationsController : ControllerBase
         null,
         null,
         listingTitle,
+        false,
+        DateTime.UtcNow,
+        false,
+        null,
+        Array.Empty<ParticipantDto>(),
+        Array.Empty<MessageDto>());
+
+    private static ConversationDto EmptySupportConversationDto() => new(
+        Guid.Empty,
+        null,
+        null,
+        null,
+        "Поддержка VaultTrade",
+        true,
         DateTime.UtcNow,
         false,
         null,
@@ -302,7 +395,8 @@ public class ConversationsController : ControllerBase
         conversation.ListingId,
         conversation.OrderId,
         conversation.Listing?.SellerId,
-        conversation.Listing?.Title,
+        conversation.Listing?.Title ?? (conversation.ListingId is null && conversation.OrderId is null ? "Поддержка VaultTrade" : null),
+        conversation.ListingId is null && conversation.OrderId is null,
         conversation.OpenedAt,
         conversation.IsClosed,
         conversation.ClosedAt,
@@ -318,6 +412,7 @@ public record ConversationDto(
     Guid? OrderId,
     Guid? SellerId,
     string? ListingTitle,
+    bool IsSupport,
     DateTime OpenedAt,
     bool IsClosed,
     DateTime? ClosedAt,

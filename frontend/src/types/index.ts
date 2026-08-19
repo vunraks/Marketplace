@@ -178,6 +178,7 @@ export interface Conversation {
   orderId?: string
   sellerId?: string
   listingTitle?: string
+  isSupport: boolean
   openedAt: string
   isClosed: boolean
   closedAt?: string

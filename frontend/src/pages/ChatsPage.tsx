@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material'
+import HeadsetMicOutlinedIcon from '@mui/icons-material/HeadsetMicOutlined'
 import SendIcon from '@mui/icons-material/Send'
 import LockIcon from '@mui/icons-material/Lock'
 import { Link as RouterLink } from 'react-router-dom'
@@ -32,6 +33,7 @@ function upsertConversation(items: Conversation[], next: Conversation) {
 
 export default function ChatsPage() {
   const user = useAppSelector((s) => s.auth.user)
+  const isStaff = user?.roles.some((role) => role === 'Admin' || role === 'Moderator')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [active, setActive] = useState<Conversation | null>(null)
   const [message, setMessage] = useState('')
@@ -66,16 +68,20 @@ export default function ChatsPage() {
   }, [])
 
   const send = async () => {
-    if (!isRealConversation(active) || active?.isClosed || !message.trim()) return
+    const content = message.trim()
+    if (!content || active?.isClosed) return
+
     setBusy(true)
     setError('')
     try {
-      const { data } = await commerceApi.sendConversationMessage(active!.id, message)
+      const { data } = active?.isSupport && !isRealConversation(active)
+        ? await commerceApi.sendSupportMessage(content)
+        : await commerceApi.sendConversationMessage(active!.id, content)
       setActive(data)
       setConversations((items) => upsertConversation(items, data))
       setMessage('')
     } catch (e) {
-      setError(getErrorMessage(e, 'Не удалось отправить сообщение'))
+      setError(getErrorMessage(e, active?.isSupport ? 'Не удалось отправить сообщение в поддержку' : 'Не удалось отправить сообщение'))
     } finally {
       setBusy(false)
     }
@@ -99,11 +105,14 @@ export default function ChatsPage() {
   if (loading) return <LoadingSpinner />
 
   const activeOther = active ? otherParticipant(active, user?.id) : undefined
-  const canCloseActive = Boolean(active && !active.isClosed && active.sellerId?.toLowerCase() === user?.id?.toLowerCase())
+  const canCloseActive = Boolean(active && !active.isClosed && (
+    active.sellerId?.toLowerCase() === user?.id?.toLowerCase() ||
+    (active.isSupport && isStaff)
+  ))
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={800} sx={{ mb: 2 }}>Чаты</Typography>
+      <Typography variant="h4" fontWeight={900} sx={{ mb: 2 }}>Чаты</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2, alignItems: 'stretch' }}>
@@ -115,23 +124,27 @@ export default function ChatsPage() {
               {conversations.map((conversation) => {
                 const other = otherParticipant(conversation, user?.id)
                 const last = conversation.messages.at(-1)
+                const isActive = active?.id === conversation.id
                 return (
                   <Button
                     key={conversation.id}
                     onClick={() => setActive(conversation)}
-                    variant={active?.id === conversation.id ? 'contained' : 'outlined'}
+                    variant={isActive ? 'contained' : 'outlined'}
                     sx={{ justifyContent: 'flex-start', textAlign: 'left', display: 'block' }}
                   >
-                    <Typography fontWeight={800} noWrap>
-                      {conversation.listingTitle || 'Товар'}
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      {conversation.isSupport && <HeadsetMicOutlinedIcon fontSize="small" />}
+                      <Typography fontWeight={900} noWrap>
+                        {conversation.isSupport ? 'Поддержка VaultTrade' : conversation.listingTitle || 'Товар'}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="caption" color={isActive ? 'inherit' : 'text.secondary'} noWrap display="block">
+                      {conversation.isSupport ? other?.username || 'Пользователь' : other?.username || 'Собеседник'}
                     </Typography>
-                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
-                      {other?.username || 'Собеседник'}
-                    </Typography>
-                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
+                    <Typography variant="caption" color={isActive ? 'inherit' : 'text.secondary'} noWrap display="block">
                       Открыт: {formatDateTime(conversation.openedAt)}
                     </Typography>
-                    <Typography variant="caption" color={active?.id === conversation.id ? 'inherit' : 'text.secondary'} noWrap display="block">
+                    <Typography variant="caption" color={isActive ? 'inherit' : 'text.secondary'} noWrap display="block">
                       {last?.content || 'Нет сообщений'}
                     </Typography>
                     {conversation.isClosed && <Chip label="Закрыт" size="small" sx={{ mt: 0.75 }} />}
@@ -148,11 +161,14 @@ export default function ChatsPage() {
               <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
                   <Box>
-                    <Typography fontWeight={800} sx={{ mb: 0.5 }}>
-                      {active.listingTitle || 'Товар'}
-                    </Typography>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
+                      {active.isSupport && <HeadsetMicOutlinedIcon color="primary" />}
+                      <Typography fontWeight={900}>
+                        {active.isSupport ? 'Поддержка VaultTrade' : active.listingTitle || 'Товар'}
+                      </Typography>
+                    </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {activeOther?.username || 'Собеседник'}
+                      {active.isSupport ? activeOther?.username || 'Пользователь' : activeOther?.username || 'Собеседник'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block">
                       Открыт: {formatDateTime(active.openedAt)}
@@ -178,6 +194,7 @@ export default function ChatsPage() {
                   </Stack>
                 </Stack>
               </Box>
+
               <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, p: 2, overflow: 'auto' }}>
                 {active.messages.length === 0 ? (
                   <Typography color="text.secondary">Напишите первое сообщение</Typography>
@@ -185,7 +202,7 @@ export default function ChatsPage() {
                   const mine = item.senderId.toLowerCase() === user?.id?.toLowerCase()
                   return (
                     <Box key={item.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.16)' : 'rgba(255,255,255,0.06)', overflowWrap: 'anywhere' }}>
+                      <Box sx={{ maxWidth: '78%', p: 1.25, borderRadius: 2, bgcolor: mine ? 'rgba(101,212,110,0.18)' : 'rgba(255,255,255,0.07)', overflowWrap: 'anywhere' }}>
                         <Typography variant="caption" color="text.secondary">{item.senderUsername} · {formatDateTime(item.createdAt)}</Typography>
                         <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.content}</Typography>
                       </Box>
@@ -193,13 +210,14 @@ export default function ChatsPage() {
                   )
                 })}
               </Stack>
+
               <Box sx={{ p: 1.5, display: 'flex', gap: 1, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <TextField
                   fullWidth
                   multiline
                   minRows={1}
                   maxRows={5}
-                  placeholder={active.isClosed ? 'Чат закрыт продавцом' : 'Написать...'}
+                  placeholder={active.isClosed ? 'Чат закрыт' : 'Написать...'}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   disabled={active.isClosed}
@@ -214,9 +232,12 @@ export default function ChatsPage() {
                   <SendIcon />
                 </Button>
               </Box>
+
               {active.isClosed && (
                 <Alert severity="info" icon={<LockIcon />} sx={{ borderRadius: 0 }}>
-                  Чат закрыт продавцом. Если покупатель снова купит этот товар, чат откроется автоматически.
+                  {active.isSupport
+                    ? 'Обращение закрыто поддержкой. Если потребуется, пользователь может написать новое сообщение.'
+                    : 'Чат закрыт продавцом. Если покупатель снова купит этот товар, чат откроется автоматически.'}
                 </Alert>
               )}
             </>

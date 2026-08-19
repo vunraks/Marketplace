@@ -50,10 +50,21 @@ export const theme = createTheme({
           '&:hover': {
             boxShadow: '0 12px 30px rgba(71, 215, 100, 0.22)',
           },
+          '&.Mui-disabled': {
+            color: 'rgba(7,16,11,0.72)',
+            backgroundColor: '#4ed665',
+            backgroundImage: 'linear-gradient(135deg, rgba(120,234,133,0.72), rgba(54,200,88,0.72))',
+            opacity: 0.72,
+          },
         },
         outlined: {
           borderColor: 'rgba(255,255,255,0.13)',
           backgroundColor: 'rgba(255,255,255,0.03)',
+          '&.Mui-disabled': {
+            color: 'rgba(238,247,240,0.46)',
+            borderColor: 'rgba(255,255,255,0.12)',
+            backgroundColor: 'rgba(255,255,255,0.035)',
+          },
         },
       },
     },
