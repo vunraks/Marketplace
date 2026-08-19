@@ -62,7 +62,7 @@ export default function SupportChatWidget() {
 
   const send = async () => {
     const content = message.trim()
-    if (!content || conversation?.isClosed) return
+    if (!content) return
 
     setBusy(true)
     setError('')
