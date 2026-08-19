@@ -93,10 +93,11 @@ export default function ListingDetailPage() {
   }, [id, isAuthenticated])
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])
+  const hasPendingOrder = Boolean(currentOrder && currentOrder.status !== 'Completed')
   const isWalletLoading = isAuthenticated && !wallet
   const isBalanceInsufficient = Boolean(isAuthenticated && wallet && wallet.balance < total)
   const currentOrderAmount = currentOrder?.amount ?? 0
-  const isConfirmBalanceInsufficient = Boolean(isAuthenticated && wallet && currentOrder && wallet.balance < currentOrderAmount)
+  const isConfirmBalanceInsufficient = Boolean(isAuthenticated && wallet && hasPendingOrder && wallet.balance < currentOrderAmount)
   const balanceShortage = wallet ? Math.max(total - wallet.balance, 0) : 0
   const confirmBalanceShortage = wallet ? Math.max(currentOrderAmount - wallet.balance, 0) : 0
   const galleryImages = useMemo(() => {
@@ -418,19 +419,19 @@ export default function ListingDetailPage() {
                 <Typography variant="h5" color="primary.main">{formatPrice(total, listing.currency)}</Typography>
               </Stack>
             </Paper>
-            {isBalanceInsufficient && !currentOrder && (
+            {isBalanceInsufficient && !hasPendingOrder && (
               <Alert severity="warning">
                 Недостаточно VT для покупки. На балансе {formatPrice(wallet?.balance ?? 0, 'VT')}, не хватает {formatPrice(balanceShortage, 'VT')}.
               </Alert>
             )}
-            {isConfirmBalanceInsufficient && currentOrder?.status !== 'Completed' && (
+            {isConfirmBalanceInsufficient && hasPendingOrder && (
               <Alert severity="warning">
                 Недостаточно VT для подтверждения заказа. Нужно {formatPrice(currentOrderAmount, 'VT')}, не хватает {formatPrice(confirmBalanceShortage, 'VT')}.
               </Alert>
             )}
             {notice && <Alert severity="success">{notice}</Alert>}
             {error && <Alert severity="error">{error}</Alert>}
-            {!currentOrder && (
+            {!hasPendingOrder && (
               <Button variant="contained" size="large" startIcon={<ShoppingCartCheckoutIcon />} disabled={busy || listing.stockQuantity <= 0 || isWalletLoading || isBalanceInsufficient} onClick={buy}>
                 Купить без списания баланса
               </Button>
