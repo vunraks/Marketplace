@@ -14,10 +14,10 @@ const projectPoint = (
   width: number,
   height: number,
 ): WavePoint => {
-  const perspective = 1 / (1 + z * 0.18)
+  const perspective = 1 / (1 + z * 0.08)
   return {
-    x: width * 0.5 + x * width * 0.48 * perspective,
-    y: height * 0.54 + y * height * 0.28 * perspective - z * height * 0.035,
+    x: width * 0.5 + x * width * 0.56 * perspective,
+    y: height * 0.62 + y * height * 0.2 * perspective - z * height * 0.018,
   }
 }
 
@@ -53,19 +53,21 @@ export default function AuthWaveBackground() {
       total: number,
       color: string,
       lineWidth: number,
+      alpha = 1,
     ) => {
-      const z = index * 0.54
-      const verticalOffset = (index - total / 2) * 0.09
-      const phase = time * (0.62 + index * 0.035) + index * 0.9
-      const amplitude = 0.18 + Math.sin(time * 0.35 + index) * 0.035
+      const z = index * 0.34
+      const verticalOffset = (index - total / 2) * 0.035
+      const phase = time * (0.22 + index * 0.012) + index * 0.72
+      const amplitude = 0.2 + Math.sin(time * 0.18 + index) * 0.025
 
+      context.globalAlpha = alpha
       context.beginPath()
-      for (let step = 0; step <= 132; step++) {
-        const progress = step / 132
-        const x = -1.24 + progress * 2.48
+      for (let step = 0; step <= 180; step++) {
+        const progress = step / 180
+        const x = -1.18 + progress * 2.36
         const y =
-          Math.sin(x * 3.4 + phase) * amplitude +
-          Math.sin(x * 7.2 - time * 0.78 + index * 0.43) * 0.045 +
+          Math.sin(x * 2.55 + phase) * amplitude +
+          Math.sin(x * 5.1 - time * 0.24 + index * 0.39) * 0.048 +
           verticalOffset
 
         const point = projectPoint(x, y, z, width, height)
@@ -76,6 +78,7 @@ export default function AuthWaveBackground() {
       context.strokeStyle = color
       context.lineWidth = lineWidth
       context.stroke()
+      context.globalAlpha = 1
     }
 
     const draw = (now: number) => {
@@ -83,39 +86,40 @@ export default function AuthWaveBackground() {
       context.clearRect(0, 0, width, height)
 
       const background = context.createRadialGradient(
-        width * 0.6,
-        height * 0.42,
+        width * 0.5,
+        height * 0.66,
         0,
-        width * 0.55,
-        height * 0.52,
-        width * 0.74,
+        width * 0.5,
+        height * 0.66,
+        width * 0.62,
       )
-      background.addColorStop(0, 'rgba(56, 189, 248, 0.11)')
-      background.addColorStop(0.45, 'rgba(34, 197, 94, 0.075)')
-      background.addColorStop(1, 'rgba(5, 10, 16, 0)')
+      background.addColorStop(0, 'rgba(255, 255, 255, 0.055)')
+      background.addColorStop(0.36, 'rgba(255, 255, 255, 0.025)')
+      background.addColorStop(1, 'rgba(0, 0, 0, 0)')
       context.fillStyle = background
       context.fillRect(0, 0, width, height)
 
       context.save()
-      context.globalCompositeOperation = 'lighter'
-      context.shadowBlur = 24
+      context.globalCompositeOperation = 'screen'
+      context.lineCap = 'round'
+      context.lineJoin = 'round'
 
-      const colors = [
-        'rgba(74, 222, 128, 0.52)',
-        'rgba(56, 189, 248, 0.54)',
-        'rgba(129, 140, 248, 0.36)',
-        'rgba(20, 184, 166, 0.38)',
-      ]
-
-      for (let index = 11; index >= 0; index--) {
-        context.shadowColor = colors[index % colors.length]
-        drawRibbon(time, index, 12, colors[index % colors.length], index < 4 ? 1.8 : 1.1)
+      for (let index = 13; index >= 0; index--) {
+        context.shadowBlur = 34
+        context.shadowColor = 'rgba(255,255,255,0.28)'
+        drawRibbon(time, index, 14, 'rgba(255,255,255,0.09)', 34 - index * 1.2, 0.4)
       }
 
-      context.shadowBlur = 8
-      for (let index = 0; index < 5; index++) {
-        context.shadowColor = 'rgba(255,255,255,0.22)'
-        drawRibbon(time + 1.8, index + 1.8, 12, 'rgba(255,255,255,0.12)', 0.8)
+      for (let index = 10; index >= 0; index--) {
+        context.shadowBlur = 22
+        context.shadowColor = 'rgba(255,255,255,0.36)'
+        drawRibbon(time + 0.7, index + 0.45, 11, 'rgba(255,255,255,0.16)', 13 - index * 0.55, 0.62)
+      }
+
+      for (let index = 0; index < 7; index++) {
+        context.shadowBlur = 16
+        context.shadowColor = 'rgba(255,255,255,0.58)'
+        drawRibbon(time + 1.5, index + 1.1, 7, 'rgba(255,255,255,0.55)', index === 3 ? 1.6 : 1.05, 0.92)
       }
       context.restore()
 

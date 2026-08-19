@@ -15,8 +15,8 @@ export default function AuthLayout() {
           '100%': { backgroundPosition: '96px 72px, -96px 72px' },
         },
         '@keyframes authAuroraShift': {
-          '0%, 100%': { transform: 'translate3d(-2%, -1%, 0) rotate(0deg)', opacity: 0.72 },
-          '50%': { transform: 'translate3d(2%, 1%, 0) rotate(2deg)', opacity: 0.95 },
+          '0%, 100%': { transform: 'translate3d(-2%, -1%, 0) rotate(0deg)', opacity: 0.5 },
+          '50%': { transform: 'translate3d(2%, 1%, 0) rotate(2deg)', opacity: 0.72 },
         },
         minHeight: '100vh',
         display: 'flex',
@@ -24,18 +24,18 @@ export default function AuthLayout() {
         position: 'relative',
         overflow: 'hidden',
         isolation: 'isolate',
-        bgcolor: '#061017',
+        bgcolor: '#010205',
         p: 2,
         background:
-          'linear-gradient(135deg, #05090f 0%, #08141c 44%, #071611 100%)',
+          'linear-gradient(135deg, #010205 0%, #05080d 46%, #020403 100%)',
         '&::before': {
           content: '""',
           position: 'absolute',
           inset: '-20%',
           zIndex: -4,
           background:
-            'conic-gradient(from 130deg at 24% 28%, rgba(34,197,94,0.22), rgba(56,189,248,0.18), rgba(168,85,247,0.11), rgba(34,197,94,0.16), rgba(34,197,94,0.22))',
-          filter: 'blur(32px)',
+            'radial-gradient(circle at 18% 24%, rgba(255,255,255,0.08), transparent 28rem), radial-gradient(circle at 78% 68%, rgba(255,255,255,0.055), transparent 30rem)',
+          filter: 'blur(24px)',
           animation: 'authAuroraShift 12s ease-in-out infinite',
         },
         '&::after': {
@@ -44,9 +44,9 @@ export default function AuthLayout() {
           inset: 0,
           zIndex: -3,
           backgroundImage:
-            'linear-gradient(rgba(148,163,184,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-          maskImage: 'linear-gradient(to bottom, transparent, black 18%, black 76%, transparent)',
+            'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+          maskImage: 'linear-gradient(to bottom, transparent, black 34%, black 76%, transparent)',
           animation: 'authGridDrift 18s linear infinite',
         },
       }}
