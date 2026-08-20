@@ -34,13 +34,13 @@ type StockImage = {
 }
 
 const stockImages: StockImage[] = [
-  { id: 'steam-market', label: 'Steam', path: '/stock-listings/steam-market.svg', categorySlugs: ['steam'] },
-  { id: 'epic-games', label: 'Epic Games', path: '/stock-listings/epic-games.svg', categorySlugs: ['epic-games'] },
-  { id: 'riot-games', label: 'Riot Games', path: '/stock-listings/riot-games.svg', categorySlugs: ['riot-games'] },
+  { id: 'steam-market', label: 'Steam', path: '/stock-listings/steam-market.webp', categorySlugs: ['steam'] },
+  { id: 'epic-games', label: 'Epic Games', path: '/stock-listings/epic-games.webp', categorySlugs: ['epic-games'] },
+  { id: 'riot-games', label: 'Riot Games', path: '/stock-listings/riot-games.webp', categorySlugs: ['riot-games'] },
   { id: 'game-accounts', label: 'Игровые аккаунты', path: '/stock-listings/game-accounts.svg', categorySlugs: ['game-accounts', 'gaming-accounts', 'accounts'] },
-  { id: 'game-items', label: 'Игровые предметы', path: '/stock-listings/game-items.svg', categorySlugs: ['game-items', 'items'] },
+  { id: 'game-items', label: 'Игровые предметы', path: '/stock-listings/game-items.webp', categorySlugs: ['game-items', 'items'] },
   { id: 'software', label: 'Программы', path: '/stock-listings/software.svg', categorySlugs: ['software', 'programs'] },
-  { id: 'license-keys', label: 'Ключи', path: '/stock-listings/license-keys.svg', categorySlugs: ['license-keys', 'keys'] },
+  { id: 'license-keys', label: 'Ключи', path: '/stock-listings/license-keys.webp', categorySlugs: ['license-keys', 'keys'] },
   { id: 'subscriptions', label: 'Подписки', path: '/stock-listings/subscriptions.svg', categorySlugs: ['subscriptions'] },
   { id: 'digital-services', label: 'Цифровые услуги', path: '/stock-listings/digital-services.svg', categorySlugs: ['digital-services', 'services'] },
 ]
