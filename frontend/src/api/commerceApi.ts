@@ -31,6 +31,8 @@ export const commerceApi = {
     axiosClient.post<Conversation>(`/conversations/listings/${listingId}/messages`, { content }),
   sendConversationMessage: (conversationId: string, content: string) =>
     axiosClient.post<Conversation>(`/conversations/${conversationId}/messages`, { content }),
+  sendUserMessage: (userId: string, content: string) =>
+    axiosClient.post<Conversation>(`/conversations/users/${userId}/messages`, { content }),
   closeConversation: (conversationId: string) =>
     axiosClient.post<Conversation>(`/conversations/${conversationId}/close`),
   deleteConversation: (conversationId: string) =>

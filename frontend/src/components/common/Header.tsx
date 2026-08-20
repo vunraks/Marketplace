@@ -242,7 +242,7 @@ export default function Header() {
                     <ShieldOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('moderation')}
                   </MenuItem>
                 )}
-                {isAdmin && (
+                {isModerator && (
                   <MenuItem component={RouterLink} to="/admin/users" onClick={closeMenu}>
                     <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 1 }} /> {t('users')}
                   </MenuItem>

@@ -207,6 +207,27 @@ public class ConversationsController : ControllerBase
         return await AddMessageAsync(conversationId, userId, request.Content.Trim(), cancellationToken);
     }
 
+    [HttpPost("users/{targetUserId:guid}/messages")]
+    [Authorize(Roles = $"{RoleNames.Admin},{RoleNames.Moderator}")]
+    public async Task<IActionResult> SendToUser(Guid targetUserId, [FromBody] SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
+            throw new AppException("Message cannot be empty");
+
+        var staffId = User.GetUserId();
+        if (staffId == targetUserId)
+            throw new AppException("You cannot start a support chat with yourself");
+
+        var targetExists = await _context.Users
+            .AnyAsync(u => u.Id == targetUserId && u.IsActive, cancellationToken);
+
+        if (!targetExists)
+            throw new NotFoundException("User not found");
+
+        var conversationId = await GetOrOpenStaffUserConversationAsync(staffId, targetUserId, cancellationToken);
+        return await AddMessageAsync(conversationId, staffId, request.Content.Trim(), cancellationToken);
+    }
+
     private async Task<IActionResult> AddMessageAsync(
         Guid conversationId,
         Guid userId,
@@ -344,6 +365,53 @@ public class ConversationsController : ControllerBase
             UserId = participantId,
             JoinedAt = now
         }));
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return conversation.Id;
+    }
+
+    private async Task<Guid> GetOrOpenStaffUserConversationAsync(Guid staffId, Guid targetUserId, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var conversation = await _context.Conversations
+            .Include(c => c.Participants)
+            .Where(c =>
+                c.ListingId == null &&
+                c.OrderId == null &&
+                c.Participants.Any(p => p.UserId == staffId) &&
+                c.Participants.Any(p => p.UserId == targetUserId))
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (conversation is null)
+        {
+            conversation = new Conversation { OpenedAt = now };
+            _context.Conversations.Add(conversation);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _context.ConversationParticipants.AddRange(
+                new ConversationParticipant { ConversationId = conversation.Id, UserId = staffId, JoinedAt = now },
+                new ConversationParticipant { ConversationId = conversation.Id, UserId = targetUserId, JoinedAt = now });
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return conversation.Id;
+        }
+
+        if (conversation.IsClosed)
+        {
+            conversation.IsClosed = false;
+            conversation.OpenedAt = now;
+            conversation.ClosedAt = null;
+            conversation.ClosedById = null;
+        }
+
+        foreach (var participant in conversation.Participants.Where(p => p.UserId == staffId || p.UserId == targetUserId))
+        {
+            participant.IsDeleted = false;
+            participant.DeletedAt = null;
+        }
+
+        conversation.UpdatedAt = now;
         await _context.SaveChangesAsync(cancellationToken);
 
         return conversation.Id;

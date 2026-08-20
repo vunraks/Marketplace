@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
 import HeadsetMicOutlinedIcon from '@mui/icons-material/HeadsetMicOutlined'
 import LockIcon from '@mui/icons-material/Lock'
 import SendIcon from '@mui/icons-material/Send'
@@ -41,6 +42,7 @@ export default function ChatsPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -84,6 +86,7 @@ export default function ChatsPage() {
 
     setBusy(true)
     setError('')
+    setSuccess('')
     try {
       const { data } = active?.isSupport && !isRealConversation(active)
         ? await commerceApi.sendSupportMessage(content)
@@ -109,6 +112,7 @@ export default function ChatsPage() {
     if (!isRealConversation(active)) return
     setBusy(true)
     setError('')
+    setSuccess('')
     try {
       const { data } = await commerceApi.closeConversation(active!.id)
       setActive(data)
@@ -125,6 +129,7 @@ export default function ChatsPage() {
     const deleteId = active!.id
     setBusy(true)
     setError('')
+    setSuccess('')
     try {
       await commerceApi.deleteConversation(deleteId)
       const { data: nextItems } = await commerceApi.getConversations()
@@ -138,6 +143,25 @@ export default function ChatsPage() {
     }
   }
 
+  const openSellerPaymentDispute = async () => {
+    if (!active?.orderId) return
+    setBusy(true)
+    setError('')
+    setSuccess('')
+    try {
+      await commerceApi.createDispute(
+        active.orderId,
+        'Продавцу не пришла валюта',
+        `Продавец открыл спор из чата по товару "${active.listingTitle || 'товар'}": после завершения сделки VT не отобразились на балансе.`,
+      )
+      setSuccess('Спор открыт. Админ или модератор проверит начисление VT.')
+    } catch (e) {
+      setError(getErrorMessage(e, 'Не удалось открыть спор по заказу'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading) return <LoadingSpinner />
 
   const activeOther = active ? otherParticipant(active, user?.id) : undefined
@@ -145,11 +169,17 @@ export default function ChatsPage() {
     active.sellerId?.toLowerCase() === user?.id?.toLowerCase() ||
     (active.isSupport && isStaff)
   ))
+  const canOpenSellerPaymentDispute = Boolean(
+    active?.orderId &&
+    !active.isSupport &&
+    active.sellerId?.toLowerCase() === user?.id?.toLowerCase(),
+  )
 
   return (
     <Box>
       <Typography variant="h4" fontWeight={900} sx={{ mb: 2 }}>Чаты</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2, alignItems: 'stretch' }}>
         <Paper sx={{ p: 1.5, height: { xs: 620, md: 'min(760px, calc(100vh - 180px))' }, minHeight: { md: 680 }, overflow: 'auto' }}>
@@ -167,6 +197,7 @@ export default function ChatsPage() {
                     onClick={() => {
                       setActive(conversation)
                       setError('')
+                      setSuccess('')
                     }}
                     variant={isActive ? 'contained' : 'outlined'}
                     sx={{ justifyContent: 'flex-start', textAlign: 'left', display: 'block' }}
@@ -223,6 +254,11 @@ export default function ChatsPage() {
                     {active.listingId && (
                       <Button component={RouterLink} to={`/listing/${active.listingId}`} size="small">
                         Открыть товар
+                      </Button>
+                    )}
+                    {canOpenSellerPaymentDispute && (
+                      <Button size="small" color="warning" variant="outlined" startIcon={<GavelOutlinedIcon />} disabled={busy} onClick={openSellerPaymentDispute}>
+                        Спор по VT
                       </Button>
                     )}
                     {canCloseActive && (

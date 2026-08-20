@@ -65,7 +65,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("admin")]
-    [Authorize(Policy = "RequireAdmin")]
+    [Authorize(Policy = "RequireModerator")]
     [ProducesResponseType(typeof(IReadOnlyList<AdminUserDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllForAdmin(CancellationToken cancellationToken)
     {

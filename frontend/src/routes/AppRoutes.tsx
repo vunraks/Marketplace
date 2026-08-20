@@ -56,10 +56,10 @@ export default function AppRoutes() {
 
         <Route element={<ProtectedRoute requireModerator />}>
           <Route path="moderation" element={<ModerationPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
         </Route>
 
         <Route element={<ProtectedRoute requireAdmin />}>
-          <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/promocodes" element={<AdminPromoCodesPage />} />
         </Route>
       </Route>

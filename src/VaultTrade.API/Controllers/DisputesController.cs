@@ -82,7 +82,9 @@ public class DisputesController : ControllerBase
         if (order.Status is OrderStatus.Cancelled or OrderStatus.Refunded)
             throw new AppException("This order cannot be disputed");
 
-        if (order.Status == OrderStatus.Completed)
+        var isSellerPaymentDispute = order.Status == OrderStatus.Completed && order.SellerId == userId;
+
+        if (order.Status == OrderStatus.Completed && !isSellerPaymentDispute)
             throw new AppException("Completed orders cannot be disputed; leave a public review instead");
 
         var existingOpenDispute = await _context.Reports
@@ -96,8 +98,11 @@ public class DisputesController : ControllerBase
             throw new AppException("This order already has an open dispute");
 
         var oldStatus = order.Status;
-        order.Status = OrderStatus.Disputed;
-        order.UpdatedAt = DateTime.UtcNow;
+        if (!isSellerPaymentDispute)
+        {
+            order.Status = OrderStatus.Disputed;
+            order.UpdatedAt = DateTime.UtcNow;
+        }
 
         var report = new Report
         {
@@ -110,14 +115,17 @@ public class DisputesController : ControllerBase
         };
 
         _context.Reports.Add(report);
-        _context.OrderStatusHistories.Add(new OrderStatusHistory
+        if (!isSellerPaymentDispute)
         {
-            OrderId = order.Id,
-            OldStatus = oldStatus,
-            NewStatus = OrderStatus.Disputed,
-            ChangedById = userId,
-            Comment = reason
-        });
+            _context.OrderStatusHistories.Add(new OrderStatusHistory
+            {
+                OrderId = order.Id,
+                OldStatus = oldStatus,
+                NewStatus = OrderStatus.Disputed,
+                ChangedById = userId,
+                Comment = reason
+            });
+        }
 
         var recipientId = order.BuyerId == userId ? order.SellerId : order.BuyerId;
         var notification = new Notification
@@ -172,7 +180,7 @@ public class DisputesController : ControllerBase
         }
         else if (resolution is "complete")
         {
-            if (order.Status != OrderStatus.Completed)
+            if (order.Status != OrderStatus.Completed && order.CompletedAt is null)
             {
                 if (order.Buyer.VirtualBalance < order.Amount)
                     throw new AppException("Buyer does not have enough virtual currency");
@@ -186,7 +194,8 @@ public class DisputesController : ControllerBase
         }
         else if (resolution is "reject")
         {
-            order.Status = OrderStatus.Created;
+            if (order.Status != OrderStatus.Completed)
+                order.Status = OrderStatus.Created;
             report.Status = ReportStatus.Rejected;
         }
         else
