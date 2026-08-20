@@ -82,6 +82,7 @@ public class AccountRestrictionMiddleware
             path.StartsWith("/api/v1/categories", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/api/v1/users/me", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/users/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/v1/profile-posts/users/", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/reviews/sellers/", StringComparison.OrdinalIgnoreCase);
     }
 }

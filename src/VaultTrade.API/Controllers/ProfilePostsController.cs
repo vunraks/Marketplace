@@ -72,10 +72,10 @@ public class ProfilePostsController : ControllerBase
 
     private async Task<User> FindUserByUsernameAsync(string username, CancellationToken cancellationToken)
     {
-        var normalized = username.Trim();
+        var normalized = username.Trim().ToLowerInvariant();
         return await _context.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == normalized && u.IsActive && !u.IsBlocked, cancellationToken)
+            .FirstOrDefaultAsync(u => u.Username == normalized && u.IsActive, cancellationToken)
             ?? throw new NotFoundException("User not found");
     }
 

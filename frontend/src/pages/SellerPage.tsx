@@ -39,12 +39,52 @@ export default function SellerPage() {
 
   useEffect(() => {
     if (!username) return
+    const sellerUsername = username
     setLoading(true)
     setError('')
+    let active = true
+
+    const loadSeller = async () => {
+      try {
+        const profileRes = await usersApi.getPublic(sellerUsername)
+        if (!active) return
+        setProfile(profileRes.data)
+
+        const [listResult, postsResult] = await Promise.allSettled([
+          listingsApi.getList({ pageSize: 20, status: 'Active' }),
+          usersApi.getUserPosts(sellerUsername),
+        ])
+
+        if (!active) return
+        if (listResult.status === 'fulfilled') {
+          setListings(listResult.value.data.items.filter((l) => l.sellerUsername.toLowerCase() === sellerUsername.toLowerCase()))
+        } else {
+          setListings([])
+        }
+
+        if (postsResult.status === 'fulfilled') {
+          setPosts(postsResult.value.data)
+        } else {
+          setPosts([])
+        }
+      } catch (e) {
+        if (active) {
+          setProfile(null)
+          setError(getErrorMessage(e, 'Продавец не найден'))
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadSeller()
+    return () => {
+      active = false
+    }
     Promise.all([
-      usersApi.getPublic(username),
+      usersApi.getPublic(sellerUsername),
       listingsApi.getList({ pageSize: 20, status: 'Active' }),
-      usersApi.getUserPosts(username),
+      usersApi.getUserPosts(sellerUsername),
     ])
       .then(([profileRes, listRes, postsRes]) => {
         setProfile(profileRes.data)
