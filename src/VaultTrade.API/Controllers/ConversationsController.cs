@@ -81,7 +81,8 @@ public class ConversationsController : ControllerBase
             return Ok(ToDto(sellerConversation));
         }
 
-        var conversationId = await FindBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, cancellationToken);
+        var activeOrderId = await FindActiveOrderIdAsync(listingId, userId, cancellationToken);
+        var conversationId = await FindBuyerSellerConversationIdAsync(listingId, userId, listing.SellerId, activeOrderId, cancellationToken);
         if (conversationId == Guid.Empty)
             return Ok(EmptyConversationDto(listingId, listing.Title));
 
@@ -172,14 +173,7 @@ public class ConversationsController : ControllerBase
         if (userId == listing.SellerId)
             throw new AppException("Open the buyer conversation from Chats to reply");
 
-        var activeOrderId = await _context.Orders
-            .Where(o =>
-                o.ListingId == listingId &&
-                o.BuyerId == userId &&
-                (o.Status == OrderStatus.Created || o.Status == OrderStatus.Completed || o.Status == OrderStatus.Disputed))
-            .OrderByDescending(o => o.CreatedAt)
-            .Select(o => (Guid?)o.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        var activeOrderId = await FindActiveOrderIdAsync(listingId, userId, cancellationToken);
 
         var openResult = await GetOrOpenBuyerSellerConversationAsync(listingId, userId, listing.SellerId, activeOrderId, cancellationToken);
         var openedNotification = openResult.WasOpened
@@ -312,15 +306,41 @@ public class ConversationsController : ControllerBase
         Guid listingId,
         Guid buyerId,
         Guid sellerId,
+        Guid? orderId,
         CancellationToken cancellationToken)
     {
+        if (orderId.HasValue)
+        {
+            return await _context.Conversations
+                .Where(c =>
+                    c.ListingId == listingId &&
+                    c.OrderId == orderId.Value &&
+                    c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
+                    c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted))
+                .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.CreatedAt) ?? c.CreatedAt)
+                .Select(c => c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         return await _context.Conversations
             .Where(c =>
                 c.ListingId == listingId &&
-                c.Participants.Any(p => p.UserId == buyerId) &&
-                c.Participants.Any(p => p.UserId == sellerId))
+                c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
+                c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted))
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<Guid?> FindActiveOrderIdAsync(Guid listingId, Guid buyerId, CancellationToken cancellationToken)
+    {
+        return await _context.Orders
+            .Where(o =>
+                o.ListingId == listingId &&
+                o.BuyerId == buyerId &&
+                (o.Status == OrderStatus.Created || o.Status == OrderStatus.Completed || o.Status == OrderStatus.Disputed))
+            .OrderByDescending(o => o.CreatedAt)
+            .Select(o => (Guid?)o.Id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -431,12 +451,20 @@ public class ConversationsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var conversation = await _context.Conversations
-            .FirstOrDefaultAsync(c =>
-                c.ListingId == listingId &&
-                c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
-                c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted),
-                cancellationToken);
+        var conversation = orderId.HasValue
+            ? await _context.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ListingId == listingId &&
+                    c.OrderId == orderId.Value &&
+                    c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
+                    c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted),
+                    cancellationToken)
+            : await _context.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ListingId == listingId &&
+                    c.Participants.Any(p => p.UserId == buyerId && !p.IsDeleted) &&
+                    c.Participants.Any(p => p.UserId == sellerId && !p.IsDeleted),
+                    cancellationToken);
 
         if (conversation is not null)
         {

@@ -207,19 +207,35 @@ export default function AdminUsersPage() {
         </Alert>
       )}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 2,
+          maxWidth: '100%',
+          overflowX: 'auto',
+          '&::-webkit-scrollbar': { height: 10 },
+          '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(101,212,110,0.35)', borderRadius: 999 },
+        }}
+      >
+        <Table
+          size="small"
+          sx={{
+            minWidth: 1420,
+            tableLayout: 'fixed',
+            '& .MuiTableCell-root': { px: 1.5, py: 1.5, verticalAlign: 'middle' },
+          }}
+        >
           <TableHead>
             <TableRow>
-              <TableCell>Пользователь</TableCell>
-              <TableCell>Связь</TableCell>
-              <TableCell>Роли</TableCell>
-              <TableCell>Статус</TableCell>
-              <TableCell>Баланс</TableCell>
-              <TableCell align="right">Объявления</TableCell>
-              <TableCell>Последний вход</TableCell>
-              <TableCell>Ограничение</TableCell>
-              <TableCell align="right">Права</TableCell>
+              <TableCell sx={{ width: 260 }}>Пользователь</TableCell>
+              <TableCell sx={{ width: 140 }}>Связь</TableCell>
+              <TableCell sx={{ width: 120 }}>Роли</TableCell>
+              <TableCell sx={{ width: 120 }}>Статус</TableCell>
+              <TableCell sx={{ width: 260 }}>Баланс</TableCell>
+              <TableCell align="right" sx={{ width: 100 }}>Объявления</TableCell>
+              <TableCell sx={{ width: 140 }}>Последний вход</TableCell>
+              <TableCell sx={{ width: 260 }}>Ограничение</TableCell>
+              <TableCell align="right" sx={{ width: 220 }}>Права</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -285,18 +301,18 @@ export default function AdminUsersPage() {
                         placeholder="VT"
                         value={balanceAmounts[user.id] ?? ''}
                         onChange={(e) => setBalanceAmounts((current) => ({ ...current, [user.id]: e.target.value }))}
-                        sx={{ width: 96 }}
+                        sx={{ width: 90 }}
                         inputProps={{ min: 0, step: 1 }}
                         disabled={!isCurrentAdmin}
                       />
-                      <Button size="small" variant="contained" disabled={!isCurrentAdmin || processingId === user.id} onClick={() => adjustBalance(user, 'add')}>+</Button>
-                      <Button size="small" variant="outlined" disabled={!isCurrentAdmin || processingId === user.id} onClick={() => adjustBalance(user, 'remove')}>-</Button>
+                      <Button size="small" variant="contained" disabled={!isCurrentAdmin || processingId === user.id} onClick={() => adjustBalance(user, 'add')} sx={{ minWidth: 48 }}>+</Button>
+                      <Button size="small" variant="outlined" disabled={!isCurrentAdmin || processingId === user.id} onClick={() => adjustBalance(user, 'remove')} sx={{ minWidth: 48 }}>-</Button>
                     </Stack>
                   </TableCell>
                   <TableCell align="right">{user.listingsCount}</TableCell>
                   <TableCell>{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Не входил'}</TableCell>
                   <TableCell>
-                    <Stack spacing={0.75} sx={{ minWidth: 210 }}>
+                    <Stack spacing={0.75} sx={{ width: 230 }}>
                       <TextField
                         size="small"
                         type="datetime-local"
@@ -313,12 +329,16 @@ export default function AdminUsersPage() {
                     </Stack>
                   </TableCell>
                   <TableCell align="right">
-                    <Stack spacing={0.5} alignItems="flex-end">
+                    <Stack spacing={0.5} alignItems="flex-start" sx={{ width: 200 }}>
                       <FormControlLabel
+                        sx={{ m: 0, justifyContent: 'space-between', width: '100%' }}
+                        labelPlacement="start"
                         control={<Switch checked={user.roles.includes('Moderator')} disabled={!isCurrentAdmin || disabled} onChange={(e) => toggleRole(user, 'Moderator', e.target.checked)} />}
                         label={<Stack direction="row" spacing={0.5} alignItems="center"><ShieldOutlinedIcon fontSize="small" /> <span>Модератор</span></Stack>}
                       />
                       <FormControlLabel
+                        sx={{ m: 0, justifyContent: 'space-between', width: '100%' }}
+                        labelPlacement="start"
                         control={<Switch checked={user.roles.includes('Seller')} disabled={!isCurrentAdmin || disabled} onChange={(e) => toggleRole(user, 'Seller', e.target.checked)} />}
                         label="Продавец"
                       />

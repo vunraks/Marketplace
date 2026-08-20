@@ -144,6 +144,8 @@ export default function ListingDetailPage() {
     try {
       const { data: order } = await commerceApi.createOrder(listing.id, quantity, buyerNote)
       setCurrentOrder(order)
+      const { data: nextConversation } = await commerceApi.getConversationForListing(listing.id)
+      setConversation(nextConversation)
       setNotice(`Заказ ${order.orderNumber} создан. Баланс пока не списан: подтвердите товар после проверки.`)
     } catch (e) {
       setError(getErrorMessage(e, 'Не удалось оформить заказ'))
