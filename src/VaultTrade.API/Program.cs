@@ -65,6 +65,7 @@ if (!app.Environment.IsProduction())
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AccountRestrictionMiddleware>();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");

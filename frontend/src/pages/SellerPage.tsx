@@ -26,7 +26,7 @@ import { useAppSelector } from '../store/hooks'
 
 export default function SellerPage() {
   const { username } = useParams<{ username: string }>()
-  const { isAuthenticated, user } = useAppSelector((s) => s.auth)
+  const { isAuthenticated, user, profile: currentProfile } = useAppSelector((s) => s.auth)
   const [profile, setProfile] = useState<PublicUserProfile | null>(null)
   const [listings, setListings] = useState<ListingCardType[]>([])
   const [posts, setPosts] = useState<ProfilePost[]>([])
@@ -35,6 +35,7 @@ export default function SellerPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const isCurrentUserRestricted = Boolean(currentProfile?.isBlocked && (!currentProfile.blockedUntil || new Date(currentProfile.blockedUntil) > new Date()))
 
   useEffect(() => {
     if (!username) return
@@ -60,6 +61,10 @@ export default function SellerPage() {
       setError('Войдите в аккаунт, чтобы написать на стене')
       return
     }
+    if (isCurrentUserRestricted) {
+      setError('Аккаунт ограничен, публикация на стене недоступна.')
+      return
+    }
 
     setBusy(true)
     setError('')
@@ -81,6 +86,7 @@ export default function SellerPage() {
 
   const initials = profile.username.slice(0, 2).toUpperCase()
   const isOwnProfile = user?.username?.toLowerCase() === profile.username.toLowerCase()
+  const isProfileRestricted = Boolean(profile.isBlocked && (!profile.blockedUntil || new Date(profile.blockedUntil) > new Date()))
 
   return (
     <Box>
@@ -90,6 +96,13 @@ export default function SellerPage() {
 
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {isProfileRestricted && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {profile.blockedUntil
+            ? `Пользователь ограничен до: ${formatDate(profile.blockedUntil)}. Причина ограничения приватна.`
+            : 'Пользователь ограничен бессрочно. Причина ограничения приватна.'}
+        </Alert>
+      )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '230px 1fr' }, gap: 2 }}>
         <Stack spacing={2}>
@@ -142,6 +155,13 @@ export default function SellerPage() {
                 <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                   <Chip icon={<ShoppingCartOutlinedIcon />} label={`${profile.activeListingsCount} товаров`} variant="outlined" />
                   <Chip icon={<ForumOutlinedIcon />} label={`${posts.length} на стене`} variant="outlined" />
+                  {isProfileRestricted && (
+                    <Chip
+                      color="warning"
+                      label={profile.blockedUntil ? `Ограничен до ${formatDate(profile.blockedUntil)}` : 'Ограничен'}
+                      variant="outlined"
+                    />
+                  )}
                 </Stack>
               </Box>
             </Stack>
@@ -152,7 +172,7 @@ export default function SellerPage() {
               <Typography fontWeight={800}>Стена</Typography>
             </Box>
             <Box sx={{ p: 2.5 }}>
-              {isAuthenticated ? (
+              {isAuthenticated && !isCurrentUserRestricted ? (
                 <>
                   <Stack direction="row" spacing={1.5} alignItems="flex-start">
                     <Avatar sx={{ bgcolor: '#07100b', color: 'primary.main', border: '1px solid rgba(101,212,110,0.28)' }}>
@@ -175,8 +195,14 @@ export default function SellerPage() {
                 </>
               ) : (
                 <Alert severity="info">
-                  <Button component={RouterLink} to="/login" size="small" sx={{ mr: 1 }}>Войдите</Button>
-                  чтобы написать на стене продавца.
+                  {isCurrentUserRestricted ? (
+                    'Аккаунт ограничен, публикация на стене недоступна.'
+                  ) : (
+                    <>
+                      <Button component={RouterLink} to="/login" size="small" sx={{ mr: 1 }}>Войдите</Button>
+                      чтобы написать на стене продавца.
+                    </>
+                  )}
                 </Alert>
               )}
             </Box>

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using VaultTrade.Application.Common;
 using VaultTrade.Application.DTOs.Auth;
 using VaultTrade.Application.Helpers;
@@ -64,8 +64,8 @@ public class AuthService : IAuthService
         var user = await _unitOfWork.Users.GetByEmailAsync(request.Email.ToLowerInvariant(), cancellationToken)
             ?? throw new UnauthorizedAppException("Invalid email or password");
 
-        if (IsAccessBlocked(user) || !user.IsActive)
-            throw new ForbiddenException("Account is blocked or inactive");
+        if (!user.IsActive)
+            throw new ForbiddenException("Account is inactive");
 
         if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
             throw new UnauthorizedAppException("Invalid email or password");
@@ -125,8 +125,8 @@ public class AuthService : IAuthService
             await _unitOfWork.Users.AddAsync(user, cancellationToken);
         }
 
-        if (IsAccessBlocked(user) || !user.IsActive)
-            throw new ForbiddenException("Account is blocked or inactive");
+        if (!user.IsActive)
+            throw new ForbiddenException("Account is inactive");
 
         user.ExternalProvider = normalizedProvider;
         user.ExternalProviderUserId = externalUser.ProviderUserId;
@@ -253,12 +253,6 @@ public class AuthService : IAuthService
             900,
             _mapper.Map<UserSummaryDto>(user));
     }
-
-    private static bool IsAccessBlocked(User user)
-    {
-        return user.IsBlocked && (user.BlockedUntil is null || user.BlockedUntil > DateTime.UtcNow);
-    }
-
     private async Task<string> GenerateExternalUsernameAsync(ExternalUserInfo externalUser, CancellationToken cancellationToken)
     {
         var source = !string.IsNullOrWhiteSpace(externalUser.Name)

@@ -30,6 +30,8 @@ public class PublicUserProfileDto
     public int TotalReviews { get; set; }
     public int ActiveListingsCount { get; set; }
     public DateTime MemberSince { get; set; }
+    public bool IsBlocked { get; set; }
+    public DateTime? BlockedUntil { get; set; }
 }
 
 public class AdminUserDto

@@ -192,6 +192,9 @@ public class UserService : IUserService
         var user = await _unitOfWork.Users.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException("User not found");
 
+        if (request.IsBlocked && user.UserRoles.Any(ur => ur.Role.Name == RoleNames.Admin))
+            throw new ForbiddenException("Admin accounts cannot be restricted");
+
         user.IsBlocked = request.IsBlocked;
         user.BlockedUntil = request.IsBlocked ? request.BlockedUntil : null;
         user.BlockReason = request.IsBlocked ? request.Reason?.Trim() : null;

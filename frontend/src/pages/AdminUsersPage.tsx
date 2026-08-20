@@ -47,6 +47,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
   const [balanceAmounts, setBalanceAmounts] = useState<Record<string, string>>({})
   const [blockUntilValues, setBlockUntilValues] = useState<Record<string, string>>({})
+  const [blockReasonValues, setBlockReasonValues] = useState<Record<string, string>>({})
   const [messageTarget, setMessageTarget] = useState<AdminUser | null>(null)
   const [directMessage, setDirectMessage] = useState('')
   const isCurrentAdmin = currentUser?.roles.includes('Admin') ?? false
@@ -137,12 +138,13 @@ export default function AdminUsersPage() {
 
     const localUntil = blockUntilValues[user.id]
     const blockedUntil = enabled && localUntil ? new Date(localUntil).toISOString() : null
+    const reason = (blockReasonValues[user.id] ?? user.blockReason ?? '').trim()
 
     try {
       const { data } = await usersApi.updateAdminUserBlock(user.id, {
         isBlocked: enabled,
         blockedUntil,
-        reason: enabled ? 'Ограничение продавца администратором' : '',
+        reason: enabled ? reason || 'Ограничение аккаунта администратором' : '',
       })
       replaceUser(data)
     } catch (e) {
@@ -320,6 +322,14 @@ export default function AdminUsersPage() {
                         value={blockUntilValues[user.id] ?? ''}
                         onChange={(e) => setBlockUntilValues((current) => ({ ...current, [user.id]: e.target.value }))}
                         InputLabelProps={{ shrink: true }}
+                        disabled={!isCurrentAdmin || isAdmin || processingId === user.id}
+                      />
+                      <TextField
+                        size="small"
+                        label="Причина"
+                        placeholder="Приватно"
+                        value={blockReasonValues[user.id] ?? user.blockReason ?? ''}
+                        onChange={(e) => setBlockReasonValues((current) => ({ ...current, [user.id]: e.target.value }))}
                         disabled={!isCurrentAdmin || isAdmin || processingId === user.id}
                       />
                       <FormControlLabel

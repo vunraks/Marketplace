@@ -71,6 +71,7 @@ export default function Header() {
   const isAdmin = user?.roles.includes('Admin')
   const balance = profile?.virtualBalance ?? user?.virtualBalance ?? 0
   const isChatsPage = location.pathname.startsWith('/chats')
+  const isRestricted = Boolean(profile?.isBlocked && (!profile.blockedUntil || new Date(profile.blockedUntil) > new Date()))
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -145,7 +146,7 @@ export default function Header() {
             {t('catalog')}
           </Button>
 
-          {isAuthenticated && isSeller && (
+          {isAuthenticated && isSeller && !isRestricted && (
             <>
               <Button component={RouterLink} to="/my-listings" color="inherit">
                 {t('myListings')}
@@ -215,39 +216,47 @@ export default function Header() {
                 <MenuItem component={RouterLink} to="/profile" onClick={closeMenu}>
                   <PersonOutlineIcon fontSize="small" sx={{ mr: 1 }} /> {t('profile')}
                 </MenuItem>
-                {isSeller && (
+                {isSeller && !isRestricted && (
                   <MenuItem component={RouterLink} to="/seller-dashboard" onClick={closeMenu}>
                     <DashboardOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('sellerDashboard')}
                   </MenuItem>
                 )}
-                {!isSeller && (
+                {!isSeller && !isRestricted && (
                   <MenuItem component={RouterLink} to="/become-seller" onClick={closeMenu}>
                     <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('becomeSeller')}
                   </MenuItem>
                 )}
-                <MenuItem component={RouterLink} to="/chats" onClick={closeMenu}>
-                  <ChatBubbleOutlineIcon fontSize="small" sx={{ mr: 1 }} /> {t('chats')} {unreadCount > 0 ? `(${unreadCount})` : ''}
-                </MenuItem>
-                <MenuItem component={RouterLink} to="/favorites" onClick={closeMenu}>
-                  <FavoriteBorderIcon fontSize="small" sx={{ mr: 1 }} /> {t('favorites')}
-                </MenuItem>
-                <MenuItem component={RouterLink} to="/orders" onClick={closeMenu}>
-                  <ReceiptLongOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('orderHistory')}
-                </MenuItem>
-                <MenuItem component={RouterLink} to="/disputes" onClick={closeMenu}>
-                  <GavelOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('disputes')}
-                </MenuItem>
-                {isModerator && (
+                {!isRestricted && (
+                  <MenuItem component={RouterLink} to="/chats" onClick={closeMenu}>
+                    <ChatBubbleOutlineIcon fontSize="small" sx={{ mr: 1 }} /> {t('chats')} {unreadCount > 0 ? `(${unreadCount})` : ''}
+                  </MenuItem>
+                )}
+                {!isRestricted && (
+                  <MenuItem component={RouterLink} to="/favorites" onClick={closeMenu}>
+                    <FavoriteBorderIcon fontSize="small" sx={{ mr: 1 }} /> {t('favorites')}
+                  </MenuItem>
+                )}
+                {!isRestricted && (
+                  <MenuItem component={RouterLink} to="/orders" onClick={closeMenu}>
+                    <ReceiptLongOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('orderHistory')}
+                  </MenuItem>
+                )}
+                {!isRestricted && (
+                  <MenuItem component={RouterLink} to="/disputes" onClick={closeMenu}>
+                    <GavelOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('disputes')}
+                  </MenuItem>
+                )}
+                {isModerator && !isRestricted && (
                   <MenuItem component={RouterLink} to="/moderation" onClick={closeMenu}>
                     <ShieldOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('moderation')}
                   </MenuItem>
                 )}
-                {isModerator && (
+                {isModerator && !isRestricted && (
                   <MenuItem component={RouterLink} to="/admin/users" onClick={closeMenu}>
                     <AdminPanelSettingsIcon fontSize="small" sx={{ mr: 1 }} /> {t('users')}
                   </MenuItem>
                 )}
-                {isAdmin && (
+                {isAdmin && !isRestricted && (
                   <MenuItem component={RouterLink} to="/admin/promocodes" onClick={closeMenu}>
                     <LocalOfferOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> {t('promoCodes')}
                   </MenuItem>

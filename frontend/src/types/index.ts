@@ -53,6 +53,8 @@ export interface PublicUserProfile {
   username: string
   avatarUrl?: string
   bio?: string
+  isBlocked: boolean
+  blockedUntil?: string
   averageRating?: number
   totalReviews: number
   activeListingsCount: number

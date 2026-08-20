@@ -40,7 +40,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>()
   const dispatch = useAppDispatch()
-  const { user, isAuthenticated } = useAppSelector((s) => s.auth)
+  const { user, isAuthenticated, profile } = useAppSelector((s) => s.auth)
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
@@ -93,6 +93,7 @@ export default function ListingDetailPage() {
   }, [id, isAuthenticated])
 
   const total = useMemo(() => (listing ? listing.price * quantity : 0), [listing, quantity])
+  const isRestricted = Boolean(profile?.isBlocked && (!profile.blockedUntil || new Date(profile.blockedUntil) > new Date()))
   const hasPendingOrder = Boolean(currentOrder && currentOrder.status !== 'Completed')
   const isWalletLoading = isAuthenticated && !wallet
   const isBalanceInsufficient = Boolean(isAuthenticated && wallet && wallet.balance < total)
@@ -128,6 +129,10 @@ export default function ListingDetailPage() {
       setError('Войдите в аккаунт, чтобы купить товар')
       return
     }
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Доступен только просмотр объявлений.')
+      return
+    }
 
     if (!wallet) {
       setError('Баланс еще загружается. Попробуйте через пару секунд.')
@@ -160,6 +165,10 @@ export default function ListingDetailPage() {
       setError('Войдите в аккаунт, чтобы добавлять товары в избранное')
       return
     }
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Избранное временно недоступно.')
+      return
+    }
 
     setBusy(true)
     setError('')
@@ -180,6 +189,10 @@ export default function ListingDetailPage() {
 
   const confirmOrder = async () => {
     if (!currentOrder) return
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Подтверждение заказа временно недоступно.')
+      return
+    }
     if (!wallet) {
       setError('Баланс еще загружается. Попробуйте через пару секунд.')
       return
@@ -210,6 +223,10 @@ export default function ListingDetailPage() {
 
   const submitReview = async () => {
     if (!currentOrder || !listing) return
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Отзывы временно недоступны.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -227,6 +244,10 @@ export default function ListingDetailPage() {
 
   const openDispute = async () => {
     if (!currentOrder) return
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Споры временно недоступны.')
+      return
+    }
 
     const reason = disputeReason.trim()
     if (!reason) {
@@ -253,6 +274,10 @@ export default function ListingDetailPage() {
     if (!listing || !message.trim()) return
     if (!isAuthenticated) {
       setError('Войдите в аккаунт, чтобы написать продавцу')
+      return
+    }
+    if (isRestricted) {
+      setError('Аккаунт ограничен. Сообщения временно недоступны.')
       return
     }
 
@@ -310,7 +335,7 @@ export default function ListingDetailPage() {
               color={isFavorite ? 'primary' : 'inherit'}
               startIcon={isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
               onClick={toggleFavorite}
-              disabled={busy}
+              disabled={busy || isRestricted}
               sx={{ flexShrink: 0 }}
             >
               {isFavorite ? 'В избранном' : 'В избранное'}
@@ -413,8 +438,9 @@ export default function ListingDetailPage() {
               value={quantity}
               onChange={(e) => setQuantity(Math.min(Math.max(Number(e.target.value) || 1, 1), Math.max(listing.stockQuantity, 1)))}
               helperText={`Доступно: ${listing.stockQuantity} шт.`}
+              disabled={isRestricted}
             />
-            <TextField label="Комментарий продавцу" multiline minRows={2} value={buyerNote} onChange={(e) => setBuyerNote(e.target.value)} />
+            <TextField label="Комментарий продавцу" multiline minRows={2} value={buyerNote} onChange={(e) => setBuyerNote(e.target.value)} disabled={isRestricted} />
             <Paper sx={{ p: 2, bgcolor: 'rgba(101,212,110,0.08)', borderRadius: 2 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography color="text.secondary">К оплате</Typography>
@@ -433,14 +459,19 @@ export default function ListingDetailPage() {
             )}
             {notice && <Alert severity="success">{notice}</Alert>}
             {error && <Alert severity="error">{error}</Alert>}
+            {isRestricted && (
+              <Alert severity="warning">
+                Аккаунт ограничен: доступен только просмотр объявления.
+              </Alert>
+            )}
             {!hasPendingOrder && (
-              <Button variant="contained" size="large" startIcon={<ShoppingCartCheckoutIcon />} disabled={busy || listing.stockQuantity <= 0 || isWalletLoading || isBalanceInsufficient} onClick={buy}>
+              <Button variant="contained" size="large" startIcon={<ShoppingCartCheckoutIcon />} disabled={busy || isRestricted || listing.stockQuantity <= 0 || isWalletLoading || isBalanceInsufficient} onClick={buy}>
                 Купить без списания баланса
               </Button>
             )}
             {currentOrder && currentOrder.status !== 'Completed' && (
               <Stack spacing={1.25}>
-                <Button variant="contained" size="large" disabled={busy || currentOrder.status === 'Disputed' || isWalletLoading || isConfirmBalanceInsufficient} onClick={confirmOrder}>
+                <Button variant="contained" size="large" disabled={busy || isRestricted || currentOrder.status === 'Disputed' || isWalletLoading || isConfirmBalanceInsufficient} onClick={confirmOrder}>
                   Я проверил товар, подтвердить и списать баланс
                 </Button>
                 <Paper sx={{ p: 2, borderRadius: 2 }}>
@@ -451,13 +482,13 @@ export default function ListingDetailPage() {
                       label="Причина спора"
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
-                      disabled={currentOrder.status === 'Disputed'}
+                      disabled={isRestricted || currentOrder.status === 'Disputed'}
                     />
                     <Button
                       variant="outlined"
                       color="warning"
                       startIcon={<GavelOutlinedIcon />}
-                      disabled={busy || currentOrder.status === 'Disputed'}
+                      disabled={busy || isRestricted || currentOrder.status === 'Disputed'}
                       onClick={openDispute}
                     >
                       Открыть спор
@@ -470,8 +501,8 @@ export default function ListingDetailPage() {
               <Paper sx={{ p: 2, borderRadius: 2 }}>
                 <Typography fontWeight={800} sx={{ mb: 1 }}>Оставить отзыв продавцу</Typography>
                 <Rating value={reviewRating} onChange={(_, value) => setReviewRating(value ?? 5)} sx={{ mb: 1 }} />
-                <TextField fullWidth multiline minRows={2} label="Комментарий" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} sx={{ mb: 1.5 }} />
-                <Button variant="outlined" disabled={busy} onClick={submitReview}>Опубликовать отзыв</Button>
+                <TextField fullWidth multiline minRows={2} label="Комментарий" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} disabled={isRestricted} sx={{ mb: 1.5 }} />
+                <Button variant="outlined" disabled={busy || isRestricted} onClick={submitReview}>Опубликовать отзыв</Button>
               </Paper>
             )}
             <Typography variant="body2" color="text.secondary">
@@ -584,7 +615,7 @@ export default function ListingDetailPage() {
               placeholder={conversation?.isClosed ? 'Чат закрыт' : 'Написать...'}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              disabled={conversation?.isClosed}
+              disabled={isRestricted || conversation?.isClosed}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
@@ -592,7 +623,7 @@ export default function ListingDetailPage() {
                 }
               }}
             />
-            <Button variant="contained" onClick={sendMessage} disabled={busy || conversation?.isClosed || !message.trim()} sx={{ alignSelf: 'flex-end', minHeight: 56, minWidth: 56 }}>
+            <Button variant="contained" onClick={sendMessage} disabled={busy || isRestricted || conversation?.isClosed || !message.trim()} sx={{ alignSelf: 'flex-end', minHeight: 56, minWidth: 56 }}>
               <SendIcon />
             </Button>
           </Box>

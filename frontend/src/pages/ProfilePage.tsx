@@ -99,6 +99,7 @@ export default function ProfilePage() {
       : profile.roles.includes('Seller')
         ? t('seller')
         : t('userRole')
+  const isRestricted = Boolean(profile.isBlocked && (!profile.blockedUntil || new Date(profile.blockedUntil) > new Date()))
 
   const openEditProfile = () => {
     setEditValues({
@@ -237,6 +238,14 @@ export default function ProfilePage() {
 
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {isRestricted && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {profile.blockedUntil
+            ? `Аккаунт ограничен до: ${formatDate(profile.blockedUntil)}. Вам доступен только просмотр объявлений.`
+            : 'Аккаунт ограничен бессрочно. Вам доступен только просмотр объявлений.'}
+          {profile.blockReason ? ` Причина: ${profile.blockReason}` : ''}
+        </Alert>
+      )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '230px 1fr' }, gap: 2 }}>
         <Stack spacing={2}>
@@ -247,9 +256,9 @@ export default function ProfilePage() {
               </Avatar>
             </Box>
             <Stack spacing={1}>
-              <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy} onClick={openEditProfile}>{t('edit')}</Button>
+              <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} disabled={busy || isRestricted} onClick={openEditProfile}>{t('edit')}</Button>
               {profile.canChangePassword && (
-                <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy} onClick={() => setPasswordOpen(true)}>
+                <Button fullWidth variant="outlined" startIcon={<LockResetOutlinedIcon />} disabled={busy || isRestricted} onClick={() => setPasswordOpen(true)}>
                   {t('changePassword')}
                 </Button>
               )}
@@ -265,7 +274,7 @@ export default function ProfilePage() {
                 fullWidth
                 variant="contained"
                 startIcon={<AddCircleOutlineIcon />}
-                disabled={busy || !isAdmin}
+                disabled={busy || !isAdmin || isRestricted}
                 onClick={() => adjustMyWallet('topup')}
                 sx={{
                   minHeight: 48,
@@ -282,7 +291,7 @@ export default function ProfilePage() {
                 fullWidth
                 variant="outlined"
                 startIcon={<RemoveCircleOutlineIcon />}
-                disabled={busy || !isAdmin}
+                disabled={busy || !isAdmin || isRestricted}
                 onClick={() => adjustMyWallet('withdraw')}
                 sx={{
                   minHeight: 48,
@@ -320,13 +329,14 @@ export default function ProfilePage() {
                 autoComplete="one-time-code"
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                disabled={isRestricted}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void redeemPromo()
                 }}
               />
                 <Button
                   variant="contained"
-                  disabled={busy || !promoCode.trim()}
+                  disabled={busy || !promoCode.trim() || isRestricted}
                   onClick={redeemPromo}
                   sx={{
                     minHeight: 48,
@@ -421,12 +431,13 @@ export default function ProfilePage() {
                   placeholder={t('writeSomething')}
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
+                  disabled={isRestricted}
                 />
               </Stack>
               <Stack direction="row" spacing={1} sx={{ mt: 2, ml: { xs: 0, sm: 7 } }}>
                 <Button
                   variant="contained"
-                  disabled={busy || !postText.trim()}
+                  disabled={busy || !postText.trim() || isRestricted}
                   onClick={publishPost}
                   sx={{
                     minHeight: 50,

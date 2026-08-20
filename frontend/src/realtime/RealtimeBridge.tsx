@@ -5,9 +5,11 @@ import { startNotificationHub, stopNotificationHub } from './notificationHub'
 /** Keeps the notifications SignalR hub connected while the user is authenticated. */
 export function RealtimeBridge() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated)
+  const profile = useAppSelector((s) => s.auth.profile)
+  const isRestricted = Boolean(profile?.isBlocked && (!profile.blockedUntil || new Date(profile.blockedUntil) > new Date()))
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !profile || isRestricted) {
       void stopNotificationHub()
       return
     }
@@ -17,7 +19,7 @@ export function RealtimeBridge() {
     return () => {
       void stopNotificationHub()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, isRestricted, profile])
 
   return null
 }
