@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate, useParams } from 'react-router-dom'
 import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
@@ -163,6 +164,10 @@ export default function CreateListingPage() {
     addImageFiles(Array.from(selected ?? []))
   }
 
+  const removeImageFile = (indexToRemove: number) => {
+    setFiles((current) => current.filter((_, index) => index !== indexToRemove))
+  }
+
   const handlePasteImages = (clipboardData: DataTransfer) => {
     const pastedFiles = Array.from(clipboardData.files)
     const added = addImageFiles(pastedFiles)
@@ -275,9 +280,6 @@ export default function CreateListingPage() {
           <Paper
             variant="outlined"
             tabIndex={0}
-            onPaste={(event) => {
-              if (handlePasteImages(event.clipboardData)) event.preventDefault()
-            }}
             sx={{
               p: 2,
               borderRadius: 2,
@@ -359,6 +361,24 @@ export default function CreateListingPage() {
                         label={index === 0 ? 'Главная' : `#${index + 1}`}
                         sx={{ position: 'absolute', left: 8, bottom: 8, fontWeight: 900, bgcolor: 'rgba(10,14,18,0.8)', color: '#fff' }}
                       />
+                      <IconButton
+                        size="small"
+                        aria-label="Удалить картинку"
+                        onClick={() => removeImageFile(index)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          color: '#fff',
+                          bgcolor: 'rgba(10,14,18,0.72)',
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          '&:hover': {
+                            bgcolor: 'rgba(255,82,82,0.85)',
+                          },
+                        }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
                     </Box>
                   ))}
                 </Box>
