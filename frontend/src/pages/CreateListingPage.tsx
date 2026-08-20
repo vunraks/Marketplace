@@ -79,7 +79,7 @@ export default function CreateListingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
   const [files, setFiles] = useState<File[]>([])
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([])
   const [selectedStockImageIds, setSelectedStockImageIds] = useState<string[]>([])
 
   const schema = z.object({
@@ -139,17 +139,50 @@ export default function CreateListingPage() {
   }, [id, reset, t])
 
   useEffect(() => {
+    const urls = files.map((file) => URL.createObjectURL(file))
+    setFilePreviewUrls(urls)
+
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      urls.forEach((url) => URL.revokeObjectURL(url))
     }
-  }, [previewUrl])
+  }, [files])
+
+  const addImageFiles = (incomingFiles: File[]) => {
+    const imageFiles = incomingFiles.filter((file) => file.type.startsWith('image/'))
+    if (imageFiles.length === 0) return false
+
+    setFiles((current) => {
+      const slotsLeft = Math.max(6 - current.length, 0)
+      if (slotsLeft === 0) return current
+      return [...current, ...imageFiles.slice(0, slotsLeft)]
+    })
+    return true
+  }
 
   const selectFiles = (selected: FileList | null) => {
-    const nextFiles = Array.from(selected ?? []).slice(0, 6)
-    setFiles(nextFiles)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(nextFiles[0] ? URL.createObjectURL(nextFiles[0]) : null)
+    addImageFiles(Array.from(selected ?? []))
   }
+
+  const handlePasteImages = (clipboardData: DataTransfer) => {
+    const pastedFiles = Array.from(clipboardData.files)
+    const added = addImageFiles(pastedFiles)
+    if (added) setError('')
+    return added
+  }
+
+  useEffect(() => {
+    const handleWindowPaste = (event: ClipboardEvent) => {
+      if (!event.clipboardData) return
+      const hasImage = Array.from(event.clipboardData.files).some((file) => file.type.startsWith('image/'))
+      if (!hasImage) return
+
+      event.preventDefault()
+      handlePasteImages(event.clipboardData)
+    }
+
+    window.addEventListener('paste', handleWindowPaste)
+    return () => window.removeEventListener('paste', handleWindowPaste)
+  }, [])
 
   const toggleStockImage = (imageId: string) => {
     setSelectedStockImageIds((current) =>
@@ -239,7 +272,23 @@ export default function CreateListingPage() {
           <TextField fullWidth label={t('deliveryInfo')} {...register('deliveryInfo')} />
           <TextField fullWidth label={t('tagsComma')} {...register('tags')} />
 
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.025)' }}>
+          <Paper
+            variant="outlined"
+            tabIndex={0}
+            onPaste={(event) => {
+              if (handlePasteImages(event.clipboardData)) event.preventDefault()
+            }}
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'rgba(255,255,255,0.025)',
+              outline: 'none',
+              '&:focus-within': {
+                borderColor: 'primary.main',
+                boxShadow: '0 0 0 3px rgba(101,212,110,0.12)',
+              },
+            }}
+          >
             <Stack spacing={2}>
               {existingImages.length > 0 && (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -260,8 +309,8 @@ export default function CreateListingPage() {
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                 <Box sx={{ width: { xs: '100%', sm: 180 }, aspectRatio: '16 / 10', borderRadius: 1.5, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center' }}>
-                  {previewUrl ? (
-                    <Box component="img" src={previewUrl} alt={t('preview')} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {filePreviewUrls[0] ? (
+                    <Box component="img" src={filePreviewUrls[0]} alt={t('preview')} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <ImageOutlinedIcon color="primary" />
                   )}
@@ -270,6 +319,9 @@ export default function CreateListingPage() {
                   <Typography fontWeight={800}>{t('addProductImages')}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                     {t('uploadImagesHint')}
+                  </Typography>
+                  <Typography variant="body2" color="primary.main" sx={{ mb: 1.5, fontWeight: 800 }}>
+                    Можно вставить картинку из буфера через Ctrl+V. Она сразу появится в галерее ниже.
                   </Typography>
                   <Button component="label" variant="outlined" startIcon={<ImageOutlinedIcon />}>
                     {t('chooseImages')}
@@ -282,6 +334,35 @@ export default function CreateListingPage() {
                   )}
                 </Box>
               </Stack>
+
+              {filePreviewUrls.length > 0 && (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1 }}>
+                  {filePreviewUrls.map((url, index) => (
+                    <Box
+                      key={`${files[index]?.name ?? 'pasted'}-${index}`}
+                      sx={{
+                        position: 'relative',
+                        borderRadius: 1.5,
+                        overflow: 'hidden',
+                        border: '1px solid rgba(101,212,110,0.28)',
+                        bgcolor: 'rgba(255,255,255,0.04)',
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={url}
+                        alt={`${t('image')} ${index + 1}`}
+                        sx={{ display: 'block', width: '100%', aspectRatio: '16 / 10', objectFit: 'cover' }}
+                      />
+                      <Chip
+                        size="small"
+                        label={index === 0 ? 'Главная' : `#${index + 1}`}
+                        sx={{ position: 'absolute', left: 8, bottom: 8, fontWeight: 900, bgcolor: 'rgba(10,14,18,0.8)', color: '#fff' }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              )}
 
               <Box>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 1.5 }}>
