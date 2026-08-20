@@ -50,4 +50,5 @@ export const authApi = {
   forgotPassword: (payload: ForgotPasswordPayload) => axiosClient.post('/auth/forgot-password', payload),
   resetPassword: (payload: ResetPasswordPayload) => axiosClient.post('/auth/reset-password', payload),
   logout: (refreshToken: string) => axiosClient.post('/auth/logout', { refreshToken }),
+  refresh: (refreshToken: string) => axiosClient.post<AuthResponse>('/auth/refresh', { refreshToken }),
 }

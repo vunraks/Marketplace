@@ -26,11 +26,13 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import MessageOutlinedIcon from '@mui/icons-material/MessageOutlined'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import { authApi } from '../api/authApi'
 import { commerceApi } from '../api/commerceApi'
 import { usersApi } from '../api/usersApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { AdminUser } from '../types'
 import { formatDate, getErrorMessage } from '../utils/format'
+import { storage } from '../utils/storage'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { setVirtualBalance } from '../store/authSlice'
 
@@ -67,6 +69,39 @@ export default function AdminUsersPage() {
     setUsers((current) => current.map((item) => item.id === data.id ? data : item))
   }
 
+  const loadUsersWithFreshToken = async () => {
+    try {
+      const { data } = await usersApi.getAdminUsers()
+      setUsers(data)
+    } catch (e) {
+      const status = typeof e === 'object' && e !== null && 'response' in e
+        ? (e as { response?: { status?: number } }).response?.status
+        : undefined
+
+      if (status === 403) {
+        const refreshToken = storage.getRefreshToken()
+        if (refreshToken) {
+          try {
+            const { data: auth } = await authApi.refresh(refreshToken)
+            storage.setAuth(auth.accessToken, auth.refreshToken, auth.user)
+            const { data } = await usersApi.getAdminUsers()
+            setUsers(data)
+            return
+          } catch {
+            // Fall through to the readable error below.
+          }
+        }
+      }
+
+      setUsers([])
+      setError(status === 403
+        ? 'Доступ запрещён. Если роль модератора выдали недавно, выйдите и войдите снова, чтобы обновить права.'
+        : getErrorMessage(e, 'Не удалось загрузить пользователей'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const load = () => {
     if (!isCurrentStaff) {
       setUsers([])
@@ -77,6 +112,8 @@ export default function AdminUsersPage() {
 
     setLoading(true)
     setError('')
+    void loadUsersWithFreshToken()
+    return
     usersApi.getAdminUsers()
       .then((r) => setUsers(r.data))
       .catch((e) => setError(getErrorMessage(e, 'Не удалось загрузить пользователей')))

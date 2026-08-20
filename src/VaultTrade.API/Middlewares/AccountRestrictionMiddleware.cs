@@ -78,10 +78,13 @@ public class AccountRestrictionMiddleware
             return false;
 
         var path = context.Request.Path.Value ?? string.Empty;
+        var isPublicUserProfile = path.StartsWith("/api/v1/users/", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/api/v1/users/admin", StringComparison.OrdinalIgnoreCase);
+
         return path.StartsWith("/api/v1/listings", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/categories", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/api/v1/users/me", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/api/v1/users/", StringComparison.OrdinalIgnoreCase) ||
+            isPublicUserProfile ||
             path.StartsWith("/api/v1/profile-posts/users/", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/reviews/sellers/", StringComparison.OrdinalIgnoreCase);
     }
