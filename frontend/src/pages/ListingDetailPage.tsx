@@ -33,7 +33,7 @@ import { commerceApi } from '../api/commerceApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import type { Conversation, ListingDetail, Order, SellerReview, Wallet } from '../types'
 import { onConversationUpdated } from '../realtime/notificationHub'
-import { assetUrl, formatDateTime, formatPrice, getErrorMessage, imagePlaceholder } from '../utils/format'
+import { formatDateTime, formatPrice, getErrorMessage, listingImageUrl, stockImageForCategory } from '../utils/format'
 import { fetchProfile } from '../store/authSlice'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 
@@ -104,10 +104,13 @@ export default function ListingDetailPage() {
   const galleryImages = useMemo(() => {
     if (!listing) return []
     const ordered = [...listing.images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder)
-    return ordered
-      .map((image) => assetUrl(image.url))
+    const images = ordered
+      .map((image) => listingImageUrl(image.url, listing.categoryName))
       .filter((url): url is string => Boolean(url))
+
+    return images.length > 0 ? images : [stockImageForCategory(listing.categoryName)]
   }, [listing])
+  const fallbackListingImage = listing ? stockImageForCategory(listing.categoryName) : stockImageForCategory()
   const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0]
 
   const openImagePreview = (index: number) => {
@@ -414,7 +417,7 @@ export default function ListingDetailPage() {
                       src={imageUrl}
                       alt={`${listing.title} ${index + 1}`}
                       onError={(event) => {
-                        event.currentTarget.src = imagePlaceholder
+                        event.currentTarget.src = fallbackListingImage
                       }}
                       sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
@@ -533,7 +536,7 @@ export default function ListingDetailPage() {
               src={selectedImage}
               alt={listing.title}
               onError={(event) => {
-                event.currentTarget.src = imagePlaceholder
+                event.currentTarget.src = fallbackListingImage
               }}
               sx={{ maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain', display: 'block' }}
             />

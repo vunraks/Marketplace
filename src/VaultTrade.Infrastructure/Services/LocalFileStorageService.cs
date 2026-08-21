@@ -10,11 +10,13 @@ public class LocalFileStorageService : IFileStorageService
 {
     private readonly StorageSettings _settings;
     private readonly string _rootPath;
+    private readonly bool _storeImagesInDatabase;
 
     public LocalFileStorageService(IOptions<StorageSettings> settings, IWebHostEnvironment environment)
     {
         _settings = settings.Value;
-        _rootPath = environment.EnvironmentName.Equals("Production", StringComparison.OrdinalIgnoreCase)
+        _storeImagesInDatabase = environment.EnvironmentName.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        _rootPath = _storeImagesInDatabase
             ? Path.Combine(Path.GetTempPath(), "vaulttrade", _settings.UploadPath.Trim('/', '\\'))
             : Path.Combine(environment.ContentRootPath, _settings.UploadPath);
         Directory.CreateDirectory(_rootPath);
@@ -23,6 +25,10 @@ public class LocalFileStorageService : IFileStorageService
     public async Task<string> SaveListingImageAsync(Guid listingId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
         ValidateFile(fileName, fileStream, out var extension);
+
+        if (_storeImagesInDatabase)
+            return await ToDataUrlAsync(fileStream, extension, cancellationToken);
+
         var folder = Path.Combine(_rootPath, "listings", listingId.ToString());
         Directory.CreateDirectory(folder);
 
@@ -49,6 +55,10 @@ public class LocalFileStorageService : IFileStorageService
     public async Task<string> SaveAvatarAsync(Guid userId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
         ValidateFile(fileName, fileStream, out var extension);
+
+        if (_storeImagesInDatabase)
+            return await ToDataUrlAsync(fileStream, extension, cancellationToken);
+
         var folder = Path.Combine(_rootPath, "avatars", userId.ToString());
         Directory.CreateDirectory(folder);
 
@@ -91,5 +101,29 @@ public class LocalFileStorageService : IFileStorageService
 
         if (stream.CanSeek && stream.Length > _settings.MaxFileSizeBytes)
             throw new AppException("File size exceeds 5 MB limit");
+    }
+
+    private async Task<string> ToDataUrlAsync(Stream stream, string extension, CancellationToken cancellationToken)
+    {
+        if (stream.CanSeek)
+            stream.Position = 0;
+
+        await using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory, cancellationToken);
+
+        if (memory.Length > _settings.MaxFileSizeBytes)
+            throw new AppException("File size exceeds 5 MB limit");
+
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            ".avif" => "image/avif",
+            _ => "application/octet-stream"
+        };
+
+        return $"data:{contentType};base64,{Convert.ToBase64String(memory.ToArray())}";
     }
 }

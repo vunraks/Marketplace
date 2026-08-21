@@ -10,7 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { categoriesApi } from '../api/categoriesApi'
 import { listingsApi } from '../api/listingsApi'
 import type { CategoryTree, ListingImage } from '../types'
-import { assetUrl, getErrorMessage, imagePlaceholder } from '../utils/format'
+import { getErrorMessage, imagePlaceholder, listingImageUrl } from '../utils/format'
 import { useTranslation } from '../i18n/LanguageProvider'
 
 type FormData = {
@@ -298,7 +298,7 @@ export default function CreateListingPage() {
                     <Box
                       key={image.id}
                       component="img"
-                      src={assetUrl(image.url) ?? imagePlaceholder}
+                      src={listingImageUrl(image.url, selectedCategory?.name)}
                       alt={image.altText ?? t('image')}
                       onError={(event) => {
                         event.currentTarget.src = imagePlaceholder

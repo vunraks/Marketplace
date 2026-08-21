@@ -2,7 +2,7 @@ import { Card, CardActionArea, CardContent, CardMedia, Chip, Typography, Box, Ra
 import VerifiedIcon from '@mui/icons-material/Verified'
 import { Link as RouterLink } from 'react-router-dom'
 import type { ListingCard as ListingCardType } from '../../types'
-import { assetUrl, formatPrice, imagePlaceholder } from '../../utils/format'
+import { formatPrice, listingImageUrl, stockImageForCategory } from '../../utils/format'
 import '../../styles/listing-card.scss'
 
 interface Props {
@@ -10,7 +10,8 @@ interface Props {
 }
 
 export default function ListingCard({ listing }: Props) {
-  const imageUrl = assetUrl(listing.primaryImageUrl) ?? imagePlaceholder
+  const fallbackImage = stockImageForCategory(listing.categoryName)
+  const imageUrl = listingImageUrl(listing.primaryImageUrl, listing.categoryName)
 
   return (
     <Card className="listing-card">
@@ -22,7 +23,7 @@ export default function ListingCard({ listing }: Props) {
             image={imageUrl}
             alt={listing.title}
             onError={(event) => {
-              event.currentTarget.src = imagePlaceholder
+              event.currentTarget.src = fallbackImage
             }}
             sx={{ objectFit: 'cover' }}
           />
